@@ -2,9 +2,9 @@
   "name": "minhwuan-store",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "bun@1.2.20",
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",
