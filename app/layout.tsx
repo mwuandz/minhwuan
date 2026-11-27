@@ -40,15 +40,12 @@ export const metadata: Metadata = {
     siteName: "Minh Wuan Store",
     title: "Minh Wuan Store | App Pro/Premium giá tốt",
     description: "Bảng giá ChatGPT, CapCut, Netflix, YouTube Premium. Thanh toán VietQR.",
-    images: [{ url: "/logo.png", width: 1200, height: 630, alt: "Minh Wuan Store" }],
+    images: [{ url: "/logo.jpg", width: 1200, height: 1200, alt: "Minh Wuan Store" }],
   },
   robots: { index: true, follow: true },
   icons: {
-    icon: [
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/logo.jpg", type: "image/jpeg" }],
+    apple: [{ url: "/logo.jpg" }],
   },
 };
 
