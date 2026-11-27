@@ -113,30 +113,31 @@
   }
 
   .card-surface {
-    @apply rounded-3xl border border-slate-200/80 bg-white/90 shadow-card backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90;
+    @apply rounded-3xl border border-slate-200/80 bg-white/90 shadow-xl backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90;
   }
 
+  /* IMPORTANT: do NOT @apply custom classes inside other custom classes */
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold;
   }
   .badge-hot {
-    @apply badge text-white;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
     background: linear-gradient(135deg, #c41e3a, #e11d48);
   }
   .badge-sale {
-    @apply badge text-slate-900;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-slate-900;
     background: linear-gradient(135deg, #f0c14b, #d4a017);
   }
   .badge-new {
-    @apply badge text-white;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
     background: linear-gradient(135deg, #1a7a4c, #2d9b6a);
   }
   .badge-combo {
-    @apply badge text-white;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
     background: linear-gradient(135deg, #7c3aed, #c41e3a);
   }
   .badge-noel {
-    @apply badge text-white;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
     background: linear-gradient(135deg, #c41e3a, #1a7a4c);
   }
 }
@@ -248,6 +249,9 @@
 @keyframes card-appear {
   from { opacity: 0; transform: translateY(14px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.product-card-noel {
+  position: relative;
 }
 .product-card-noel::before {
   content: "";
