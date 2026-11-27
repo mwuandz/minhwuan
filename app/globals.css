@@ -2,144 +2,137 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================================================
-   MINH WUAN STORE – NOEL 2026 THEME
-   ========================================================= */
-
-@layer base {
-  :root {
-    --background: 0 20% 98%;
-    --foreground: 0 30% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 30% 12%;
-    --primary: 0 72% 42%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 145 40% 94%;
-    --secondary-foreground: 145 50% 18%;
-    --muted: 0 15% 95%;
-    --muted-foreground: 0 10% 40%;
-    --accent: 45 90% 48%;
-    --accent-foreground: 0 30% 12%;
-    --destructive: 0 84% 50%;
-    --border: 0 20% 88%;
-    --ring: 0 72% 42%;
-    --radius: 1rem;
-
-    --noel-red: #c41e3a;
-    --noel-red-dark: #9b1b2e;
-    --noel-green: #1a7a4c;
-    --noel-green-light: #2d9b6a;
-    --noel-gold: #d4a017;
-    --noel-gold-light: #f0c14b;
-    --noel-cream: #fff8f0;
-    --noel-snow: #f8fafc;
-  }
-
-  .dark {
-    --background: 220 30% 6%;
-    --foreground: 0 0% 96%;
-    --card: 220 25% 10%;
-    --card-foreground: 0 0% 96%;
-    --primary: 0 70% 48%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 145 25% 14%;
-    --secondary-foreground: 145 40% 80%;
-    --muted: 220 20% 14%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 45 85% 52%;
-    --accent-foreground: 220 30% 6%;
-    --destructive: 0 62% 45%;
-    --border: 220 20% 18%;
-    --ring: 0 70% 48%;
-  }
-
-  * {
-    border-color: hsl(var(--border));
-  }
-
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+:root {
+  --noel-red: #c41e3a;
+  --noel-gold: #d4a017;
+  --noel-green: #1a7a4c;
+  --paper: #fff8f0;
+  --ink: #1a0a0f;
 }
 
-/* SNOWFALL */
-.snow-container {
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  overflow: hidden;
-}
-.snowflake {
-  position: absolute;
-  top: -10px;
-  color: #fff;
-  font-size: 1rem;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
-  animation: snowfall linear infinite;
-  opacity: 0.85;
-  user-select: none;
-}
-@keyframes snowfall {
-  0% { transform: translateY(-10vh) rotate(0deg); opacity: 0.9; }
-  100% { transform: translateY(110vh) rotate(360deg); opacity: 0.2; }
+html, body {
+  min-height: 100%;
 }
 
-@layer components {
+body {
+  color: #0f172a;
+  background: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  color: #f1f5f9;
+  background: #020617;
+}
+
+.container-main {
+  width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
   .container-main {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
+}
 
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50;
-    background: linear-gradient(135deg, #c41e3a 0%, #9b1b2e 50%, #d4a017 100%);
-    box-shadow: 0 10px 30px -8px rgba(196, 30, 58, 0.45);
-  }
-  .btn-primary:hover {
-    box-shadow: 0 14px 36px -6px rgba(196, 30, 58, 0.55);
-  }
+.noel-hero-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(196, 30, 58, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(212, 160, 23, 0.08), transparent),
+    radial-gradient(ellipse 50% 30% at 0% 100%, rgba(26, 122, 76, 0.06), transparent);
+}
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition-all hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800;
-  }
+.dark .noel-hero-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(196, 30, 58, 0.18), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(212, 160, 23, 0.1), transparent),
+    radial-gradient(ellipse 50% 30% at 0% 100%, rgba(26, 122, 76, 0.08), transparent);
+}
 
-  .btn-gold {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-slate-900 shadow-lg transition-all hover:-translate-y-0.5;
-    background: linear-gradient(135deg, #f0c14b, #d4a017);
-    box-shadow: 0 8px 24px -6px rgba(212, 160, 23, 0.4);
-  }
+.card-surface {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 40px -12px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(8px);
+}
 
-  .card-surface {
-    @apply rounded-3xl border border-slate-200/80 bg-white/90 shadow-xl backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90;
-  }
+.dark .card-surface {
+  border-color: rgba(51, 65, 85, 0.6);
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.4);
+}
 
-  /* IMPORTANT: do NOT @apply custom classes inside other custom classes */
-  .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold;
-  }
-  .badge-hot {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
-    background: linear-gradient(135deg, #c41e3a, #e11d48);
-  }
-  .badge-sale {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-slate-900;
-    background: linear-gradient(135deg, #f0c14b, #d4a017);
-  }
-  .badge-new {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
-    background: linear-gradient(135deg, #1a7a4c, #2d9b6a);
-  }
-  .badge-combo {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
-    background: linear-gradient(135deg, #7c3aed, #c41e3a);
-  }
-  .badge-noel {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-white;
-    background: linear-gradient(135deg, #c41e3a, #1a7a4c);
-  }
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #c41e3a, #e11d48 55%, #d4a017);
+  padding: 0.7rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 8px 24px -6px rgba(196, 30, 58, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -6px rgba(196, 30, 58, 0.55);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.7rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  transition: background 0.15s ease;
+}
+.dark .btn-secondary {
+  border-color: rgba(51, 65, 85, 0.8);
+  background: rgba(30, 41, 59, 0.8);
+  color: #f1f5f9;
+}
+.btn-secondary:hover {
+  background: rgba(248, 250, 252, 1);
+}
+.dark .btn-secondary:hover {
+  background: rgba(51, 65, 85, 0.9);
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #d4a017, #f59e0b);
+  padding: 0.7rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1a0a0f;
+  box-shadow: 0 8px 24px -6px rgba(212, 160, 23, 0.4);
+}
+
+.text-noel {
+  background: linear-gradient(135deg, #c41e3a, #d4a017, #1a7a4c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .marquee-track {
@@ -152,54 +145,6 @@
   to { transform: translateX(-50%); }
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
-}
-
-/* Noel decorations */
-.noel-glow {
-  box-shadow: 0 0 0 1px rgba(196, 30, 58, 0.15),
-              0 8px 32px -8px rgba(196, 30, 58, 0.25);
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.twinkle { animation: twinkle 2.2s ease-in-out infinite; }
-
-@keyframes float-soft {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-.float-soft { animation: float-soft 5s ease-in-out infinite; }
-
-.text-noel {
-  background: linear-gradient(135deg, #c41e3a 0%, #d4a017 50%, #1a7a4c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.noel-hero-bg {
-  background:
-    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(196, 30, 58, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(212, 160, 23, 0.1), transparent),
-    radial-gradient(ellipse 50% 30% at 50% 100%, rgba(26, 122, 76, 0.08), transparent);
-}
-.dark .noel-hero-bg {
-  background:
-    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(196, 30, 58, 0.22), transparent),
-    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(212, 160, 23, 0.15), transparent),
-    radial-gradient(ellipse 50% 30% at 50% 100%, rgba(26, 122, 76, 0.12), transparent);
-}
-
 .cart-badge {
   background: linear-gradient(135deg, #c41e3a, #e11d48);
 }
@@ -209,7 +154,6 @@
   backdrop-filter: blur(12px);
 }
 
-/* Christmas 2026 motion layer */
 .noel-lights {
   position: relative;
   z-index: 30;
@@ -276,5 +220,34 @@ html { scroll-behavior: smooth; }
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: .01ms !important;
+  }
+}
+
+/* Mobile polish */
+.safe-bottom {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+.container-main {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+@media (max-width: 640px) {
+  .btn-primary, .btn-secondary, .btn-gold {
+    min-height: 44px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 0.875rem;
+  }
+  .card-surface {
+    border-radius: 1.25rem;
+  }
+  .marquee-track {
+    font-size: 0.75rem;
+  }
+  body {
+    overflow-x: hidden;
+  }
+  .hero-float {
+    animation: none;
   }
 }
