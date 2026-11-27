@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSpinByOrder, getSpinConfig, spinForOrder } from "@/lib/spin";
 
+function mapPrize(p: {
+  id: string;
+  label: string;
+  type: string;
+  color?: string;
+  weight?: number;
+  voucherCode?: string;
+  note?: string;
+  image?: string;
+  productId?: string;
+}) {
+  return {
+    id: p.id,
+    label: p.label,
+    type: p.type,
+    color: p.color,
+    weight: p.weight,
+    voucherCode: p.voucherCode,
+    note: p.note,
+    image: p.image,
+    productId: p.productId,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const orderId = req.nextUrl.searchParams.get("orderId") || "";
   const config = await getSpinConfig();
@@ -11,13 +35,7 @@ export async function GET(req: NextRequest) {
         title: config.title,
         description: config.description,
         minOrderAmount: config.minOrderAmount,
-        prizes: config.prizes.map((p) => ({
-          id: p.id,
-          label: p.label,
-          type: p.type,
-          color: p.color,
-          weight: p.weight,
-        })),
+        prizes: config.prizes.map(mapPrize),
       },
     });
   }
@@ -28,13 +46,7 @@ export async function GET(req: NextRequest) {
       title: config.title,
       description: config.description,
       minOrderAmount: config.minOrderAmount,
-      prizes: config.prizes.map((p) => ({
-        id: p.id,
-        label: p.label,
-        type: p.type,
-        color: p.color,
-        weight: p.weight,
-      })),
+      prizes: config.prizes.map(mapPrize),
     },
     alreadySpun: Boolean(existing),
     result: existing,
@@ -57,16 +69,10 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({
       result: out.result,
-      prize: out.prize,
+      prize: mapPrize(out.prize),
       config: {
         title: out.config?.title,
-        prizes: out.config?.prizes?.map((p) => ({
-          id: p.id,
-          label: p.label,
-          color: p.color,
-          type: p.type,
-          weight: p.weight,
-        })),
+        prizes: out.config?.prizes?.map(mapPrize),
       },
     });
   } catch (e) {
