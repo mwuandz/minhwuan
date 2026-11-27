@@ -1,46 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { defaultSettings } from "../../lib/products";
-import { formatMoney } from "../../lib/money";
-import { Order, Product, SiteSettings, Voucher } from "../../lib/types";
+import { useMemo, useState, useEffect, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
+import {
+  LayoutDashboard, ShoppingBag, Package, Ticket, Settings,
+  ArrowLeft, RefreshCw, Pencil, Trash2, Plus, Clock,
+  CheckCircle2, Truck, XCircle, Loader2,
+} from "lucide-react";
+import { defaultSettings } from "@/lib/products";
+import { formatMoney } from "@/lib/money";
+import { Order, Product, SiteSettings, Voucher } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-type Tab = "orders" | "products" | "vouchers" | "settings";
+type Tab = "dashboard" | "orders" | "products" | "vouchers" | "settings";
 
 const emptyProduct: Product = {
-  id: "",
-  name: "",
-  category: "App AI",
-  price: 0,
-  duration: "1 tháng",
-  description: "",
-  deliveryType: "manual",
-  active: true,
-  image: "https://www.google.com/s2/favicons?sz=128&domain=chatgpt.com",
-  badge: ""
+  id: "", name: "", category: "App AI", price: 0, duration: "1 tháng",
+  description: "", deliveryType: "manual", active: true,
+  image: "https://www.google.com/s2/favicons?sz=128&domain=chatgpt.com", badge: "",
 };
 
 const emptyVoucher: Voucher = {
-  id: "",
-  code: "",
-  description: "",
-  type: "fixed",
-  value: 0,
-  minOrderAmount: 0,
-  maxDiscount: 0,
-  usageLimit: 0,
-  usedCount: 0,
-  active: true,
-  applicableProductIds: []
+  id: "", code: "", description: "", type: "fixed", value: 0,
+  minOrderAmount: 0, maxDiscount: 0, usageLimit: 0, usedCount: 0,
+  active: true, applicableProductIds: [],
 };
 
 function toDateTimeLocalValue(value?: string) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-
-  const pad = (number: number) => String(number).padStart(2, "0");
-
+  const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
@@ -50,431 +40,360 @@ function dateTimeLocalToIso(value: string) {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
 
+const statusConfig: Record<string, { label: string; className: string; icon: ReactNode }> = {
+  pending: { label: "Chờ TT", className: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300", icon: <Clock className="h-3.5 w-3.5" /> },
+  paid: { label: "Đã TT", className: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  delivered: { label: "Đã giao", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300", icon: <Truck className="h-3.5 w-3.5" /> },
+  cancelled: { label: "Hủy", className: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300", icon: <XCircle className="h-3.5 w-3.5" /> },
+};
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
-  const [isAuthed, setIsAuthed] = useState(false);
+  const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<Tab>("orders");
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [productForm, setProductForm] = useState<Product>(emptyProduct);
   const [voucherForm, setVoucherForm] = useState<Voucher>(emptyVoucher);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [msg, setMsg] = useState("");
 
-  const headers = useMemo(() => ({ "x-admin-password": password, "Content-Type": "application/json" }), [password]);
+  const headers = useMemo(
+    () => ({ "x-admin-password": password, "Content-Type": "application/json" }),
+    [password]
+  );
 
-  async function loadOrders(currentPassword = password) {
-    const res = await fetch(`/api/admin/orders?password=${encodeURIComponent(currentPassword)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Lỗi tải đơn hàng");
-    setOrders(data.orders || []);
-  }
-
-  async function loadProducts(currentPassword = password) {
-    const res = await fetch(`/api/admin/products?password=${encodeURIComponent(currentPassword)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Lỗi tải sản phẩm");
-    setProducts(data.products || []);
-  }
-
-  async function loadVouchers(currentPassword = password) {
-    const res = await fetch(`/api/admin/vouchers?password=${encodeURIComponent(currentPassword)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Lỗi tải voucher");
-    setVouchers(data.vouchers || []);
-  }
-
-  async function loadSettings(currentPassword = password) {
-    const res = await fetch(`/api/admin/settings?password=${encodeURIComponent(currentPassword)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Lỗi tải cài đặt");
-    setSettings(data.settings || defaultSettings);
-  }
-
-  async function loadAll() {
-    const currentPassword = password.trim();
-    setError("");
-    setMessage("");
-
-    if (!currentPassword) {
-      setIsAuthed(false);
-      setError("Vui lòng nhập mật khẩu admin");
-      return;
-    }
-
+  async function loadAll(pwd = password) {
+    setLoading(true);
+    setMsg("");
     try {
-      setLoading(true);
-      await Promise.all([loadOrders(currentPassword), loadProducts(currentPassword), loadVouchers(currentPassword), loadSettings(currentPassword)]);
-      setIsAuthed(true);
-      localStorage.setItem("mw_admin_password", currentPassword);
-      setMessage("Đăng nhập admin thành công.");
-    } catch (err) {
-      setIsAuthed(false);
-      setError(err instanceof Error ? err.message : "Sai mật khẩu admin");
+      const [o, p, v, s] = await Promise.all([
+        fetch(`/api/admin/orders?password=${encodeURIComponent(pwd)}`).then((r) => r.json()),
+        fetch(`/api/admin/products?password=${encodeURIComponent(pwd)}`).then((r) => r.json()),
+        fetch(`/api/admin/vouchers?password=${encodeURIComponent(pwd)}`).then((r) => r.json()),
+        fetch(`/api/admin/settings?password=${encodeURIComponent(pwd)}`).then((r) => r.json()),
+      ]);
+      if (o.error || p.error) throw new Error(o.error || p.error || "Sai mật khẩu");
+      setOrders(o.orders || []);
+      setProducts(p.products || []);
+      setVouchers(v.vouchers || []);
+      if (s.settings) setSettings(s.settings);
+      setAuthed(true);
+      localStorage.setItem("mw_admin_password", pwd);
+      setMsg("Đăng nhập admin thành công");
+    } catch (e) {
+      setAuthed(false);
+      setMsg(e instanceof Error ? e.message : "Sai mật khẩu admin");
     } finally {
       setLoading(false);
     }
   }
 
-  async function saveProduct(e: React.FormEvent) {
+  useEffect(() => {
+    const saved = localStorage.getItem("mw_admin_password");
+    if (saved) {
+      setPassword(saved);
+      loadAll(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function saveProduct(e: FormEvent) {
     e.preventDefault();
-    setMessage("");
-    setError("");
     const res = await fetch(`/api/admin/products?password=${encodeURIComponent(password)}`, {
       method: "POST",
       headers,
-      body: JSON.stringify(productForm)
+      body: JSON.stringify(productForm),
     });
     const data = await res.json();
-    if (!res.ok) return setError(data.error || "Không lưu được sản phẩm");
+    if (!res.ok) return setMsg(data.error || "Lỗi lưu sản phẩm");
     setProductForm(emptyProduct);
-    setMessage("Đã lưu sản phẩm. Reload trang chủ để thấy thay đổi.");
-    await loadProducts();
+    setMsg("Đã lưu sản phẩm");
+    loadAll();
   }
 
   async function deleteProduct(id: string) {
-    if (!confirm("Xóa sản phẩm này?")) return;
-    setMessage("");
-    setError("");
-    const res = await fetch(`/api/admin/products/${id}?password=${encodeURIComponent(password)}`, { method: "DELETE", headers });
-    const data = await res.json();
-    if (!res.ok) return setError(data.error || "Không xóa được sản phẩm");
-    setMessage("Đã xóa sản phẩm.");
-    await loadProducts();
+    if (!confirm("Xóa sản phẩm?")) return;
+    await fetch(`/api/admin/products/${id}?password=${encodeURIComponent(password)}`, {
+      method: "DELETE",
+      headers,
+    });
+    setMsg("Đã xóa sản phẩm");
+    loadAll();
   }
 
-  async function saveVoucher(e: React.FormEvent) {
+  async function saveVoucher(e: FormEvent) {
     e.preventDefault();
-    setMessage("");
-    setError("");
     const res = await fetch(`/api/admin/vouchers?password=${encodeURIComponent(password)}`, {
       method: "POST",
       headers,
-      body: JSON.stringify(voucherForm)
+      body: JSON.stringify(voucherForm),
     });
     const data = await res.json();
-    if (!res.ok) return setError(data.error || "Không lưu được voucher");
+    if (!res.ok) return setMsg(data.error || "Lỗi lưu voucher");
     setVoucherForm(emptyVoucher);
-    setMessage("Đã lưu voucher.");
-    await loadVouchers();
+    setMsg("Đã lưu voucher");
+    loadAll();
   }
 
   async function deleteVoucher(code: string) {
-    if (!confirm("Xóa voucher này?")) return;
-    setMessage("");
-    setError("");
-    const res = await fetch(`/api/admin/vouchers/${code}?password=${encodeURIComponent(password)}`, { method: "DELETE", headers });
-    const data = await res.json();
-    if (!res.ok) return setError(data.error || "Không xóa được voucher");
-    setMessage("Đã xóa voucher.");
-    await loadVouchers();
+    if (!confirm("Xóa voucher?")) return;
+    await fetch(`/api/admin/vouchers/${code}?password=${encodeURIComponent(password)}`, {
+      method: "DELETE",
+      headers,
+    });
+    setMsg("Đã xóa voucher");
+    loadAll();
   }
 
-  async function saveSettings(e: React.FormEvent) {
+  async function saveSettings(e: FormEvent) {
     e.preventDefault();
-    setMessage("");
-    setError("");
     const res = await fetch(`/api/admin/settings?password=${encodeURIComponent(password)}`, {
       method: "POST",
       headers,
-      body: JSON.stringify(settings)
+      body: JSON.stringify(settings),
     });
     const data = await res.json();
-    if (!res.ok) return setError(data.error || "Không lưu được cài đặt");
-    setSettings(data.settings);
-    setMessage("Đã lưu tiêu đề và giao diện web.");
+    if (!res.ok) return setMsg(data.error || "Lỗi lưu cài đặt");
+    if (data.settings) setSettings(data.settings);
+    setMsg("Đã lưu cài đặt website");
   }
 
-  function editProduct(product: Product) {
-    setProductForm(product);
-    setTab("products");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const stats = useMemo(() => {
+    const paid = orders.filter((o) => o.status === "paid" || o.status === "delivered");
+    const revenue = paid.reduce((s, o) => s + (o.amount || 0), 0);
+    return {
+      total: orders.length,
+      pending: orders.filter((o) => o.status === "pending").length,
+      paid: paid.length,
+      revenue,
+    };
+  }, [orders]);
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 noel-hero-bg">
+        <div className="w-full max-w-sm space-y-4 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl">
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 text-2xl font-black text-white">
+              MW
+            </div>
+            <h1 className="text-xl font-black">Admin Panel</h1>
+            <p className="mt-1 text-sm text-slate-500">Minh Wuan Store · Noel 2026</p>
+          </div>
+          <input
+            type="password"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+            placeholder="ADMIN_PASSWORD"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && loadAll()}
+          />
+          {msg && <p className="text-sm text-rose-500 text-center">{msg}</p>}
+          <button
+            onClick={() => loadAll()}
+            disabled={loading}
+            className="w-full rounded-xl bg-gradient-to-r from-red-600 to-amber-500 py-3 font-bold text-white shadow-lg disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Đăng nhập admin"}
+          </button>
+          <Link href="/" className="block text-center text-sm text-slate-500 hover:text-red-600">
+            ← Về trang chủ
+          </Link>
+        </div>
+      </div>
+    );
   }
-
-  function editVoucher(voucher: Voucher) {
-    setVoucherForm({ ...voucher, applicableProductIds: voucher.applicableProductIds || [] });
-    setTab("vouchers");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function toggleVoucherProduct(productId: string) {
-    const current = voucherForm.applicableProductIds || [];
-    const next = current.includes(productId)
-      ? current.filter((id) => id !== productId)
-      : [...current, productId];
-    setVoucherForm({ ...voucherForm, applicableProductIds: next });
-  }
-
-  function clearVoucherProducts() {
-    setVoucherForm({ ...voucherForm, applicableProductIds: [] });
-  }
-
-  function toggleFlashSaleProduct(productId: string) {
-    const current = settings.flashSaleProductIds || [];
-    const next = current.includes(productId)
-      ? current.filter((id) => id !== productId)
-      : [...current, productId];
-    setSettings({ ...settings, flashSaleProductIds: next });
-  }
-
-  function clearFlashSaleProducts() {
-    setSettings({ ...settings, flashSaleProductIds: [], flashSalePrices: {} });
-  }
-
-  function setFlashSalePrice(productId: string, value: string) {
-    const price = Number(value.replace(/[^0-9]/g, ""));
-    const nextPrices = { ...(settings.flashSalePrices || {}) };
-    if (!price || price <= 0) delete nextPrices[productId];
-    else nextPrices[productId] = price;
-
-    const currentIds = settings.flashSaleProductIds || [];
-    const nextIds = currentIds.includes(productId) ? currentIds : [...currentIds, productId];
-    setSettings({ ...settings, flashSaleProductIds: nextIds, flashSalePrices: nextPrices });
-  }
-
-  function logout() {
-    localStorage.removeItem("mw_admin_password");
-    setPassword("");
-    setIsAuthed(false);
-    setOrders([]);
-    setProducts([]);
-    setVouchers([]);
-    setMessage("Đã đăng xuất admin.");
-  }
-
-  useEffect(() => {
-    const saved = localStorage.getItem("mw_admin_password");
-    if (saved) setPassword(saved);
-  }, []);
 
   return (
-    <main className="theme-light admin-page">
-      <div className="container">
-        <nav className="nav">
-          <a className="brand" href="/"><span className="brand-mark">MW</span><span><b>MinhWuan Store</b><small>Admin Panel</small></span></a>
-          <a className="badge" href="/">← Về web</a>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <header className="sticky top-0 z-40 border-b border-red-100 dark:border-red-900/40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl">
+        <div className="h-1 w-full bg-gradient-to-r from-red-600 via-amber-400 to-emerald-600" />
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Link href="/" className="rounded-lg p-2 hover:bg-red-50 dark:hover:bg-red-950/40">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <h1 className="text-lg font-black">Admin 🎄</h1>
+          </div>
+          <button onClick={() => loadAll()} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Refresh">
+            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2">
+          {([
+            ["dashboard", LayoutDashboard, "Dashboard"],
+            ["orders", ShoppingBag, "Đơn hàng"],
+            ["products", Package, "Sản phẩm"],
+            ["vouchers", Ticket, "Voucher"],
+            ["settings", Settings, "Cài đặt"],
+          ] as const).map(([id, Icon, label]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={cn(
+                "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition",
+                tab === id ? "bg-red-600 text-white shadow-md" : "hover:bg-slate-100 dark:hover:bg-slate-800"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
         </nav>
+      </header>
 
-        <section className="card admin-hero">
-          <div>
-            <span className="eyebrow">Admin Dashboard</span>
-            <h1>Quản lý shop</h1>
-            <p className="muted">Nhập mật khẩu để quản lý đơn hàng, sản phẩm, voucher, giá và giao diện website.</p>
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        {msg && (
+          <div className="mb-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+            {msg}
           </div>
-          <div className="form admin-login">
-            <input type="password" placeholder="Nhập ADMIN_PASSWORD" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") loadAll(); }} />
-            <button className="btn" onClick={loadAll} disabled={loading}>{loading ? "Đang kiểm tra..." : "Đăng nhập admin"}</button>
-            {isAuthed && <button className="btn secondary" onClick={logout}>Đăng xuất</button>}
+        )}
+
+        {tab === "dashboard" && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Tổng đơn", stats.total, ""],
+              ["Chờ thanh toán", stats.pending, "text-amber-600"],
+              ["Đã thanh toán", stats.paid, "text-emerald-600"],
+              ["Doanh thu", formatMoney(stats.revenue), "text-red-600"],
+            ].map(([label, val, color]) => (
+              <div key={String(label)} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                <div className="text-sm text-slate-500">{label}</div>
+                <div className={`mt-1 text-2xl font-black ${color}`}>{val}</div>
+              </div>
+            ))}
           </div>
-        </section>
+        )}
 
-        {error && <div className="notice error">{error}</div>}
-        {message && <div className="notice success">{message}</div>}
-
-        {!isAuthed ? (
-          <section className="card admin-section">
-            <h2>Vui lòng đăng nhập</h2>
-            <p className="muted">Các chức năng chỉnh giá, thêm sản phẩm, tạo voucher, sửa tiêu đề web và xem đơn hàng chỉ hiển thị sau khi nhập đúng mật khẩu admin.</p>
-          </section>
-        ) : (
-          <>
-            <div className="admin-tabs">
-              <button className={tab === "orders" ? "chip active" : "chip"} onClick={() => setTab("orders")}>Đơn hàng</button>
-              <button className={tab === "products" ? "chip active" : "chip"} onClick={() => setTab("products")}>Sản phẩm & giá</button>
-              <button className={tab === "vouchers" ? "chip active" : "chip"} onClick={() => setTab("vouchers")}>Voucher</button>
-              <button className={tab === "settings" ? "chip active" : "chip"} onClick={() => setTab("settings")}>Tiêu đề & theme</button>
-            </div>
-
-            {tab === "orders" && (
-              <section className="card admin-section">
-                <div className="section-head split compact"><div><h2>Đơn hàng</h2><p className="muted">Đơn chờ thanh toán sẽ tự ẩn/xóa sau 15 phút nếu khách chưa thanh toán.</p></div><button className="btn secondary" onClick={() => loadOrders()}>Tải lại</button></div>
-                <div className="table-wrap">
-                  <table>
-                    <thead><tr><th>Mã đơn</th><th>Sản phẩm</th><th>Tạm tính</th><th>Voucher</th><th>Cần thu</th><th>Khách</th><th>Liên hệ</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
-                    <tbody>
-                      {orders.map((order) => (
-                        <tr key={order.id}>
-                          <td>{order.id}</td>
-                          <td>{(order.items || []).map((item) => `${item.name} x${item.quantity}`).join(", ") || order.productName}</td>
-                          <td>{formatMoney(order.originalAmount || order.amount)}</td>
-                          <td>{order.voucherCode ? `${order.voucherCode} (-${formatMoney(order.discountAmount || 0)})` : "-"}</td>
-                          <td>{formatMoney(order.amount)}</td>
-                          <td>{order.customerName}</td>
-                          <td>{order.customerContact}</td>
-                          <td><span className={`status-pill ${order.status}`}>{order.status}</span></td>
-                          <td>{new Date(order.createdAt).toLocaleString("vi-VN")}</td>
-                        </tr>
-                      ))}
-                      {!orders.length && <tr><td colSpan={9}>Chưa có đơn hàng.</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-
-            {tab === "products" && (
-              <section className="admin-grid">
-                <form className="card form admin-section" onSubmit={saveProduct}>
-                  <h2>{productForm.id ? "Sửa sản phẩm" : "Thêm sản phẩm"}</h2>
-                  <input placeholder="ID sản phẩm, có thể để trống khi thêm mới" value={productForm.id} onChange={(e) => setProductForm({ ...productForm, id: e.target.value })} />
-                  <input required placeholder="Tên sản phẩm" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} />
-                  <input required placeholder="Danh mục, ví dụ App AI, Video / Photo" value={productForm.category} onChange={(e) => setProductForm({ ...productForm, category: e.target.value })} />
-                  <input required type="number" placeholder="Giá" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })} />
-                  <input required placeholder="Thời hạn" value={productForm.duration} onChange={(e) => setProductForm({ ...productForm, duration: e.target.value })} />
-                  <input placeholder="URL ảnh/logo sản phẩm hoặc icon, ví dụ https://..." value={productForm.image || ""} onChange={(e) => setProductForm({ ...productForm, image: e.target.value })} />
-                  <input placeholder="Nhãn nhỏ, ví dụ Hot, New, 1 năm" value={productForm.badge || ""} onChange={(e) => setProductForm({ ...productForm, badge: e.target.value })} />
-                  <textarea required placeholder="Mô tả" value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} rows={4} />
-                  <label className="switch-row"><input type="checkbox" checked={productForm.active !== false} onChange={(e) => setProductForm({ ...productForm, active: e.target.checked })} /> Hiển thị sản phẩm</label>
-                  <button className="btn wide" type="submit">Lưu sản phẩm</button>
-                  <button className="btn secondary wide" type="button" onClick={() => setProductForm(emptyProduct)}>Tạo mới</button>
-                </form>
-
-                <section className="card admin-section">
-                  <div className="section-head split compact"><div><h2>Danh sách sản phẩm</h2><p className="muted">Bấm Sửa để đổi giá/tên/mô tả/icon.</p></div><button className="btn secondary" onClick={() => loadProducts()}>Tải lại</button></div>
-                  <div className="product-admin-list">
-                    {products.map((product) => (
-                      <article className="product-admin-card" key={product.id}>
-                        <span className="admin-icon">{product.image?.startsWith("http") ? <img src={product.image} alt={product.name} /> : (product.image || "💎")}</span>
-                        <div><b>{product.name}</b><small>{product.id} · {product.category} · {product.duration}</small></div>
-                        <strong>{formatMoney(product.price)}</strong>
-                        <span className={product.active === false ? "status-pill cancelled" : "status-pill paid"}>{product.active === false ? "Ẩn" : "Hiện"}</span>
-                        <button className="btn secondary" onClick={() => editProduct(product)}>Sửa</button>
-                        <button className="remove" onClick={() => deleteProduct(product.id)}>Xóa</button>
-                      </article>
-                    ))}
-                    {!products.length && <p className="muted">Chưa có sản phẩm.</p>}
-                  </div>
-                </section>
-              </section>
-            )}
-
-            {tab === "vouchers" && (
-              <section className="admin-grid">
-                <form className="card form admin-section" onSubmit={saveVoucher}>
-                  <h2>{voucherForm.code ? "Sửa voucher" : "Tạo voucher"}</h2>
-                  <input required placeholder="Mã voucher, ví dụ SALE10" value={voucherForm.code} onChange={(e) => setVoucherForm({ ...voucherForm, code: e.target.value.toUpperCase() })} />
-                  <input placeholder="Mô tả" value={voucherForm.description || ""} onChange={(e) => setVoucherForm({ ...voucherForm, description: e.target.value })} />
-                  <label>Loại giảm<select value={voucherForm.type} onChange={(e) => setVoucherForm({ ...voucherForm, type: e.target.value as Voucher["type"] })}><option value="fixed">Giảm số tiền cố định</option><option value="percent">Giảm phần trăm</option></select></label>
-                  <input required type="number" placeholder="Giá trị giảm, ví dụ 10000 hoặc 10" value={voucherForm.value} onChange={(e) => setVoucherForm({ ...voucherForm, value: Number(e.target.value) })} />
-                  <input type="number" placeholder="Đơn tối thiểu" value={voucherForm.minOrderAmount || 0} onChange={(e) => setVoucherForm({ ...voucherForm, minOrderAmount: Number(e.target.value) })} />
-                  <input type="number" placeholder="Giảm tối đa, áp dụng cho %" value={voucherForm.maxDiscount || 0} onChange={(e) => setVoucherForm({ ...voucherForm, maxDiscount: Number(e.target.value) })} />
-                  <input type="number" placeholder="Giới hạn lượt dùng, 0 là không giới hạn" value={voucherForm.usageLimit || 0} onChange={(e) => setVoucherForm({ ...voucherForm, usageLimit: Number(e.target.value) })} />
-                  <input type="datetime-local" value={voucherForm.expiresAt ? voucherForm.expiresAt.slice(0, 16) : ""} onChange={(e) => setVoucherForm({ ...voucherForm, expiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
-                  <div className="voucher-scope-box">
-                    <div className="scope-head">
-                      <b>Áp dụng cho sản phẩm</b>
-                      <button className="btn secondary mini" type="button" onClick={clearVoucherProducts}>Tất cả sản phẩm</button>
-                    </div>
-                    <p className="muted small">Không chọn sản phẩm nào = áp dụng cho toàn bộ đơn. Chọn sản phẩm thì voucher chỉ giảm trên phần tiền của các sản phẩm đó.</p>
-                    <div className="voucher-product-checks">
-                      {products.map((product) => (
-                        <label key={product.id} className="product-check">
-                          <input
-                            type="checkbox"
-                            checked={(voucherForm.applicableProductIds || []).includes(product.id)}
-                            onChange={() => toggleVoucherProduct(product.id)}
-                          />
-                          <span>{product.name} · {product.duration}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <label className="switch-row"><input type="checkbox" checked={voucherForm.active !== false} onChange={(e) => setVoucherForm({ ...voucherForm, active: e.target.checked })} /> Voucher đang hoạt động</label>
-                  <button className="btn wide" type="submit">Lưu voucher</button>
-                  <button className="btn secondary wide" type="button" onClick={() => setVoucherForm(emptyVoucher)}>Tạo mới</button>
-                </form>
-
-                <section className="card admin-section">
-                  <div className="section-head split compact"><div><h2>Danh sách voucher</h2><p className="muted">Khách nhập voucher tại phần thanh toán.</p></div><button className="btn secondary" onClick={() => loadVouchers()}>Tải lại</button></div>
-                  <div className="product-admin-list">
-                    {vouchers.map((voucher) => (
-                      <article className="product-admin-card" key={voucher.code}>
-                        <span className="admin-icon">🎟️</span>
-                        <div><b>{voucher.code}</b><small>{voucher.description || "-"} · {(voucher.applicableProductIds || []).length ? `Áp dụng ${voucher.applicableProductIds!.length} sản phẩm` : "Áp dụng tất cả"} · Đã dùng {voucher.usedCount || 0}{voucher.usageLimit ? `/${voucher.usageLimit}` : ""}</small></div>
-                        <strong>{voucher.type === "percent" ? `${voucher.value}%` : formatMoney(voucher.value)}</strong>
-                        <span className={voucher.active === false ? "status-pill cancelled" : "status-pill paid"}>{voucher.active === false ? "Tắt" : "Bật"}</span>
-                        <button className="btn secondary" onClick={() => editVoucher(voucher)}>Sửa</button>
-                        <button className="remove" onClick={() => deleteVoucher(voucher.code)}>Xóa</button>
-                      </article>
-                    ))}
-                    {!vouchers.length && <p className="muted">Chưa có voucher.</p>}
-                  </div>
-                </section>
-              </section>
-            )}
-
-            {tab === "settings" && (
-              <form className="card form admin-section settings-form" onSubmit={saveSettings}>
-                <h2>Sửa tiêu đề web và theme</h2>
-                <div className="form-grid">
-                  <label>Tiêu đề shop<input value={settings.siteTitle} onChange={(e) => setSettings({ ...settings, siteTitle: e.target.value })} /></label>
-                  <label>Dòng phụ<input value={settings.siteSubtitle} onChange={(e) => setSettings({ ...settings, siteSubtitle: e.target.value })} /></label>
-                  <label>Domain hiển thị<input value={settings.brandDomain} onChange={(e) => setSettings({ ...settings, brandDomain: e.target.value })} /></label>
-                  <label>Link Zalo<input value={settings.zaloLink} onChange={(e) => setSettings({ ...settings, zaloLink: e.target.value })} /></label>
-                  <label>Link cộng đồng<input value={settings.communityLink} onChange={(e) => setSettings({ ...settings, communityLink: e.target.value })} /></label>
-                  <label className="switch-row"><input type="checkbox" checked={settings.communityPopupEnabled !== false} onChange={(e) => setSettings({ ...settings, communityPopupEnabled: e.target.checked })} /> Bật popup nhóm Zalo khi mở web</label>
-                  <label>Màu chủ đạo<input type="color" value={settings.accentColor} onChange={(e) => setSettings({ ...settings, accentColor: e.target.value })} /></label>
-                  <label>Theme<select value={settings.themeMode} onChange={(e) => setSettings({ ...settings, themeMode: e.target.value as SiteSettings["themeMode"] })}><option value="light">Sáng</option><option value="dark">Tối</option></select></label>
-                </div>
-                <label>Tiêu đề popup cộng đồng<input value={settings.communityPopupTitle || ""} onChange={(e) => setSettings({ ...settings, communityPopupTitle: e.target.value })} /></label>
-                <label>Mô tả popup cộng đồng<textarea value={settings.communityPopupDescription || ""} onChange={(e) => setSettings({ ...settings, communityPopupDescription: e.target.value })} rows={2} /></label>
-                <label>Tiêu đề lớn hero<textarea value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} rows={2} /></label>
-                <label>Mô tả hero<textarea value={settings.heroDescription} onChange={(e) => setSettings({ ...settings, heroDescription: e.target.value })} rows={3} /></label>
-                <label>Thông báo cảnh báo<textarea value={settings.warningText} onChange={(e) => setSettings({ ...settings, warningText: e.target.value })} rows={2} /></label>
-                <label>Dòng event<input value={settings.eventText} onChange={(e) => setSettings({ ...settings, eventText: e.target.value })} /></label>
-
-                <div className="flash-admin-box">
-                  <div className="scope-head">
-                    <div>
-                      <h3>Flash Sale đầu trang</h3>
-                      <p className="muted small">Bật/tắt, sửa nội dung và chọn sản phẩm hiển thị ở đầu website.</p>
-                    </div>
-                    <label className="switch-row"><input type="checkbox" checked={settings.flashSaleEnabled !== false} onChange={(e) => setSettings({ ...settings, flashSaleEnabled: e.target.checked })} /> Bật flash sale</label>
-                  </div>
-                  <div className="form-grid">
-                    <label>Tag flash sale<input value={settings.flashSaleBadge || ""} onChange={(e) => setSettings({ ...settings, flashSaleBadge: e.target.value })} placeholder="FLASH SALE" /></label>
-                    <label>Nút kêu gọi<input value={settings.flashSaleCta || ""} onChange={(e) => setSettings({ ...settings, flashSaleCta: e.target.value })} placeholder="Mua ngay" /></label>
-                    <label>Tiêu đề flash sale<input value={settings.flashSaleTitle || ""} onChange={(e) => setSettings({ ...settings, flashSaleTitle: e.target.value })} placeholder="Flash Sale App Premium hôm nay" /></label>
-                    <label>Thời gian kết thúc<input type="datetime-local" value={toDateTimeLocalValue(settings.flashSaleEndsAt)} onChange={(e) => setSettings({ ...settings, flashSaleEndsAt: dateTimeLocalToIso(e.target.value) })} /></label>
-                  </div>
-                  <label>Mô tả flash sale<textarea value={settings.flashSaleDescription || ""} onChange={(e) => setSettings({ ...settings, flashSaleDescription: e.target.value })} rows={2} /></label>
-                  <div className="scope-head product-scope-title">
-                    <b>Sản phẩm trong Flash Sale</b>
-                    <button className="btn secondary mini" type="button" onClick={clearFlashSaleProducts}>Tự động chọn sản phẩm hot</button>
-                  </div>
-                  <p className="muted small">Chọn sản phẩm để hiện ở Flash Sale. Có thể nhập giá sale riêng; bỏ trống/0 thì dùng giá gốc. Giá sale sẽ được dùng khi khách thanh toán trong thời gian Flash Sale còn hiệu lực.</p>
-                  <div className="flash-price-list">
-                    {products.map((product) => {
-                      const checked = (settings.flashSaleProductIds || []).includes(product.id);
-                      const salePrice = settings.flashSalePrices?.[product.id] || 0;
-                      return (
-                        <div key={product.id} className="flash-price-row">
-                          <label className="product-check">
-                            <input type="checkbox" checked={checked} onChange={() => toggleFlashSaleProduct(product.id)} />
-                            <span>{product.name} · {product.duration} · Giá gốc {formatMoney(product.price)}</span>
-                          </label>
-                          <input
-                            className="sale-price-input"
-                            inputMode="numeric"
-                            placeholder="Giá sale đã giảm"
-                            value={salePrice ? String(salePrice) : ""}
-                            onChange={(e) => setFlashSalePrice(product.id, e.target.value)}
-                          />
+        {tab === "orders" && (
+          <div className="space-y-3">
+            {orders.length === 0 ? (
+              <p className="text-center text-slate-500 py-12">Chưa có đơn hàng</p>
+            ) : (
+              orders.map((o) => {
+                const st = statusConfig[o.status] || statusConfig.pending;
+                return (
+                  <div key={o.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <div className="font-bold">{o.id}</div>
+                        <div className="text-sm text-slate-500">
+                          {o.customerName} · {o.customerContact}
                         </div>
-                      );
-                    })}
+                        <div className="mt-1 text-sm">
+                          {(o.items || []).map((i) => `${i.name} x${i.quantity}`).join(", ") || o.productName}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-red-600">{formatMoney(o.amount)}</div>
+                        <span className={cn("mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold", st.className)}>
+                          {st.icon} {st.label}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-slate-400">
+                      {new Date(o.createdAt).toLocaleString("vi-VN")}
+                      {o.voucherCode ? ` · Voucher ${o.voucherCode}` : ""}
+                    </div>
                   </div>
-                </div>
-
-                <button className="btn wide" type="submit">Lưu giao diện</button>
-              </form>
+                );
+              })
             )}
-          </>
+          </div>
+        )}
+
+        {tab === "products" && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <form onSubmit={saveProduct} className="space-y-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+              <h2 className="font-black">{productForm.id ? "Sửa sản phẩm" : "Thêm sản phẩm"}</h2>
+              <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="ID (để trống = tự tạo)" value={productForm.id} onChange={(e) => setProductForm({ ...productForm, id: e.target.value })} />
+              <input required className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Tên" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} />
+              <input required className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Danh mục" value={productForm.category} onChange={(e) => setProductForm({ ...productForm, category: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <input required type="number" className="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Giá" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })} />
+                <input required className="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Thời hạn" value={productForm.duration} onChange={(e) => setProductForm({ ...productForm, duration: e.target.value })} />
+              </div>
+              <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="URL ảnh" value={productForm.image || ""} onChange={(e) => setProductForm({ ...productForm, image: e.target.value })} />
+              <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Badge" value={productForm.badge || ""} onChange={(e) => setProductForm({ ...productForm, badge: e.target.value })} />
+              <textarea required rows={3} className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Mô tả" value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={productForm.active !== false} onChange={(e) => setProductForm({ ...productForm, active: e.target.checked })} />
+                Hiển thị
+              </label>
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white">Lưu</button>
+                <button type="button" onClick={() => setProductForm(emptyProduct)} className="rounded-xl border px-4 py-2.5 text-sm font-bold">Mới</button>
+              </div>
+            </form>
+            <div className="space-y-2">
+              {products.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-bold">{p.name}</div>
+                    <div className="text-xs text-slate-500">{p.category} · {formatMoney(p.price)}</div>
+                  </div>
+                  <button onClick={() => { setProductForm(p); }} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => deleteProduct(p.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "vouchers" && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <form onSubmit={saveVoucher} className="space-y-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+              <h2 className="font-black">Voucher</h2>
+              <input required className="w-full rounded-xl border px-3 py-2 text-sm uppercase dark:bg-slate-800 dark:border-slate-700" placeholder="Mã" value={voucherForm.code} onChange={(e) => setVoucherForm({ ...voucherForm, code: e.target.value.toUpperCase() })} />
+              <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Mô tả" value={voucherForm.description || ""} onChange={(e) => setVoucherForm({ ...voucherForm, description: e.target.value })} />
+              <select className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" value={voucherForm.type} onChange={(e) => setVoucherForm({ ...voucherForm, type: e.target.value as Voucher["type"] })}>
+                <option value="fixed">Giảm số tiền</option>
+                <option value="percent">Giảm %</option>
+              </select>
+              <input required type="number" className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Giá trị" value={voucherForm.value} onChange={(e) => setVoucherForm({ ...voucherForm, value: Number(e.target.value) })} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" className="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Đơn tối thiểu" value={voucherForm.minOrderAmount || 0} onChange={(e) => setVoucherForm({ ...voucherForm, minOrderAmount: Number(e.target.value) })} />
+                <input type="number" className="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Giảm tối đa" value={voucherForm.maxDiscount || 0} onChange={(e) => setVoucherForm({ ...voucherForm, maxDiscount: Number(e.target.value) })} />
+              </div>
+              <button type="submit" className="w-full rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white">Lưu voucher</button>
+            </form>
+            <div className="space-y-2">
+              {vouchers.map((v) => (
+                <div key={v.code} className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold">{v.code}</div>
+                    <div className="text-xs text-slate-500">{v.type === "percent" ? `${v.value}%` : formatMoney(v.value)}</div>
+                  </div>
+                  <button onClick={() => setVoucherForm({ ...v, applicableProductIds: v.applicableProductIds || [] })} className="rounded-lg p-2 hover:bg-slate-100"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => deleteVoucher(v.code)} className="rounded-lg p-2 text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "settings" && (
+          <form onSubmit={saveSettings} className="mx-auto max-w-xl space-y-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+            <h2 className="font-black">Cài đặt website</h2>
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Tiêu đề" value={settings.siteTitle} onChange={(e) => setSettings({ ...settings, siteTitle: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Subtitle" value={settings.siteSubtitle} onChange={(e) => setSettings({ ...settings, siteSubtitle: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Domain" value={settings.brandDomain} onChange={(e) => setSettings({ ...settings, brandDomain: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Hero title" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} />
+            <textarea rows={3} className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Hero description" value={settings.heroDescription} onChange={(e) => setSettings({ ...settings, heroDescription: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Event text" value={settings.eventText} onChange={(e) => setSettings({ ...settings, eventText: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Zalo link" value={settings.zaloLink} onChange={(e) => setSettings({ ...settings, zaloLink: e.target.value })} />
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={settings.flashSaleEnabled !== false} onChange={(e) => setSettings({ ...settings, flashSaleEnabled: e.target.checked })} />
+              Bật Flash Sale
+            </label>
+            <input type="datetime-local" className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" value={toDateTimeLocalValue(settings.flashSaleEndsAt)} onChange={(e) => setSettings({ ...settings, flashSaleEndsAt: dateTimeLocalToIso(e.target.value) })} />
+            <button type="submit" className="w-full rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white">Lưu cài đặt</button>
+          </form>
         )}
       </div>
-    </main>
+    </div>
   );
 }
