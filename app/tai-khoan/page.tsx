@@ -45,9 +45,7 @@ interface Order {
 const STATUS_MAP: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   pending: { label: "Chờ thanh toán", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/40", icon: Clock },
   paid: { label: "Đã thanh toán", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/40", icon: CheckCircle2 },
-  processing: { label: "Đang xử lý", color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40", icon: Package },
-  shipping: { label: "Đang giao", color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/40", icon: Truck },
-  completed: { label: "Hoàn thành", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40", icon: CheckCircle2 },
+  delivered: { label: "Đã giao", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40", icon: Truck },
   cancelled: { label: "Đã huỷ", color: "text-red-600 bg-red-50 dark:bg-red-950/40", icon: XCircle },
 };
 
@@ -74,7 +72,7 @@ export default function TaiKhoanPage() {
     (async () => {
       try {
         const res = await fetch("/api/auth/orders", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { "x-customer-token": token },
         });
         if (res.status === 401) {
           localStorage.removeItem(TOKEN_KEY);
@@ -83,9 +81,9 @@ export default function TaiKhoanPage() {
           return;
         }
         const data = await res.json();
-        setOrders(data.orders || data || []);
+        setOrders(Array.isArray(data.orders) ? data.orders : []);
       } catch {
-        // ignore
+        // ignore network errors – still show profile
       } finally {
         setLoading(false);
       }
@@ -93,9 +91,14 @@ export default function TaiKhoanPage() {
   }, [router]);
 
   function handleLogout() {
+    const token = localStorage.getItem(TOKEN_KEY) || "";
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-customer-token": token },
+      body: JSON.stringify({ token }),
+    }).catch(() => {});
     router.push("/");
   }
 
@@ -112,14 +115,14 @@ export default function TaiKhoanPage() {
       <div className="mx-auto max-w-2xl px-4 py-10">
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-slate-50 transition"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50 transition"
         >
           <ArrowLeft className="h-4 w-4" />
           Về trang chủ
         </Link>
 
         <div className="card-surface p-6 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 text-white">
                 <User className="h-7 w-7" />
@@ -127,9 +130,7 @@ export default function TaiKhoanPage() {
               <div>
                 <h1 className="text-xl font-black text-slate-900 dark:text-slate-50">{customer?.name}</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{customer?.contact}</p>
-                {customer?.email && (
-                  <p className="text-xs text-slate-400">{customer.email}</p>
-                )}
+                {customer?.email && <p className="text-xs text-slate-400">{customer.email}</p>}
               </div>
             </div>
             <button
@@ -162,15 +163,10 @@ export default function TaiKhoanPage() {
                 const status = STATUS_MAP[order.status] || STATUS_MAP.pending;
                 const StatusIcon = status.icon;
                 return (
-                  <div
-                    key={order.id}
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-4"
-                  >
+                  <div key={order.id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-mono text-sm font-bold text-slate-900 dark:text-slate-50">
-                          {order.id}
-                        </div>
+                        <div className="font-mono text-sm font-bold text-slate-900 dark:text-slate-50">{order.id}</div>
                         <div className="mt-1 text-xs text-slate-500">
                           {new Date(order.createdAt).toLocaleString("vi-VN")}
                         </div>
