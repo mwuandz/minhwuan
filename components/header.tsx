@@ -23,6 +23,7 @@ export function Header({
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [logoSrc, setLogoSrc] = useState("/logo.png");
 
   return (
     <header className="sticky top-0 z-50 border-b border-red-200/60 dark:border-red-900/40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl">
@@ -33,9 +34,10 @@ export function Header({
           <Link href="/" className="flex items-center gap-3 shrink-0 group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo.png"
+              src={logoSrc}
               alt="Minh Wuan"
-              className="h-10 w-10 object-contain sm:h-11 sm:w-11 transition group-hover:scale-105"
+              className="h-10 w-10 object-contain sm:h-11 sm:w-11 transition group-hover:scale-105 rounded-xl"
+              onError={() => setLogoSrc("/logo.svg")}
             />
             <div className="hidden sm:block">
               <div className="text-sm font-black leading-tight flex items-center gap-1.5">
