@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { defaultProducts, defaultSettings } from "../lib/products";
-import { formatMoney } from "../lib/money";
-import { CartItem, Order, Product, SiteSettings } from "../lib/types";
+import { defaultProducts, defaultSettings } from "@/lib/products";
+import { formatMoney } from "@/lib/money";
+import { CartItem, Order, Product, SiteSettings } from "@/lib/types";
+import { Header } from "@/components/header";
+import { Snow } from "@/components/snow";
+import { ProductCard } from "@/components/product-card";
+import { CartDrawer } from "@/components/cart-drawer";
+import { Shield, Zap, QrCode, Gift, X, Clock, CheckCircle2, Heart, ArrowUpDown, Sparkles, ArrowUp, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const CART_KEY = "minhwuan_cart";
+const WISHLIST_KEY = "minhwuan_wishlist";
 type LocalCartItem = { productId: string; quantity: number };
 
 type VoucherState = {
@@ -23,29 +30,22 @@ function formatRemaining(ms: number) {
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-
   if (days > 0) {
     return `${days} ngày ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
-
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
-function isImageUrl(value?: string) {
-  return Boolean(value && /^https?:\/\//i.test(value));
 }
 
 function getActiveFlashSalePrice(product: Product, settings: SiteSettings, now: number) {
   const endsAt = settings.flashSaleEndsAt ? new Date(settings.flashSaleEndsAt).getTime() : 0;
   if (settings.flashSaleEnabled === false) return product.price;
   if (endsAt > 0 && endsAt <= now) return product.price;
-
   const selectedIds = settings.flashSaleProductIds || [];
-  const isSelected = selectedIds.length ? selectedIds.includes(product.id) : /hot|best|combo|giá tốt|rẻ/i.test(`${product.badge || ""} ${product.category}`);
+  const isSelected = selectedIds.length
+    ? selectedIds.includes(product.id)
+    : /hot|best|combo|giá tốt|rẻ/i.test(`${product.badge || ""} ${product.category}`);
   if (!isSelected) return product.price;
-
-  const rawSalePrice = settings.flashSalePrices?.[product.id];
-  const salePrice = Number(rawSalePrice || 0);
+  const salePrice = Number(settings.flashSalePrices?.[product.id] || 0);
   if (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= product.price) return product.price;
   return salePrice;
 }
@@ -55,18 +55,23 @@ export default function HomePage() {
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [category, setCategory] = useState("Tất cả");
   const [keyword, setKeyword] = useState("");
+  const [sortBy, setSortBy] = useState<"default" | "price-asc" | "price-desc" | "name">("default");
   const [loading, setLoading] = useState(false);
   const [communityOpen, setCommunityOpen] = useState(false);
   const [flashOpen, setFlashOpen] = useState(false);
   const [flashDismissed, setFlashDismissed] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState<LocalCartItem[]>([]);
+  const [cartHydrated, setCartHydrated] = useState(false);
+  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [wishlistHydrated, setWishlistHydrated] = useState(false);
   const [voucherInput, setVoucherInput] = useState("");
   const [voucher, setVoucher] = useState<VoucherState | null>(null);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
   const [now, setNow] = useState(Date.now());
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     fetch("/api/products")
@@ -85,6 +90,12 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
     if (!paymentOrder?.id || paymentOrder.status !== "pending") return;
     const timer = setInterval(async () => {
       try {
@@ -98,22 +109,50 @@ export default function HomePage() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(CART_KEY);
-      if (saved) setCart(JSON.parse(saved));
+      const savedCart = localStorage.getItem(CART_KEY);
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed))
+          setCart(parsed.filter((item) => item && typeof item.productId === "string" && Number(item.quantity) > 0));
+      }
+      const savedWishlist = localStorage.getItem(WISHLIST_KEY);
+      if (savedWishlist) {
+        const parsed = JSON.parse(savedWishlist);
+        if (Array.isArray(parsed)) setWishlist(parsed.filter((id) => typeof id === "string"));
+      }
     } catch {
       setCart([]);
+      setWishlist([]);
+    } finally {
+      setCartHydrated(true);
+      setWishlistHydrated(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!cartHydrated) return;
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  }, [cart]);
+  }, [cart, cartHydrated]);
+
+  useEffect(() => {
+    if (!wishlistHydrated) return;
+    localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
+  }, [wishlist, wishlistHydrated]);
 
   useEffect(() => {
     setVoucher(null);
   }, [cart]);
 
-  const categories = useMemo(() => ["Tất cả", ...Array.from(new Set(products.map((p) => p.category)))], [products]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("cart") === "open") setCartOpen(true);
+  }, []);
+
+  const categories = useMemo(
+    () => ["Tất cả", ...Array.from(new Set(products.map((p) => p.category)))],
+    [products]
+  );
 
   const detailedCart = useMemo<CartItem[]>(() => {
     return cart
@@ -128,7 +167,7 @@ export default function HomePage() {
           duration: product.duration,
           price: activePrice,
           quantity: item.quantity,
-          subtotal: activePrice * item.quantity
+          subtotal: activePrice * item.quantity,
         } satisfies CartItem;
       })
       .filter(Boolean) as CartItem[];
@@ -140,12 +179,18 @@ export default function HomePage() {
   const cartQuantity = detailedCart.reduce((sum, item) => sum + item.quantity, 0);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    let list = products.filter((product) => {
       const matchCategory = category === "Tất cả" || product.category === category;
-      const matchKeyword = `${product.name} ${product.category} ${product.description} ${product.duration}`.toLowerCase().includes(keyword.toLowerCase());
-      return matchCategory && matchKeyword;
+      const matchKeyword = `${product.name} ${product.category} ${product.description} ${product.duration}`
+        .toLowerCase()
+        .includes(keyword.toLowerCase());
+      return matchCategory && matchKeyword && product.active !== false;
     });
-  }, [category, keyword, products]);
+    if (sortBy === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
+    if (sortBy === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
+    if (sortBy === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    return list;
+  }, [category, keyword, products, sortBy]);
 
   const flashProducts = useMemo(() => {
     const ids = settings.flashSaleProductIds || [];
@@ -185,11 +230,14 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [settingsLoaded, settings.communityPopupEnabled, flashSaleActive, flashDismissed]);
 
-  function addToCart(productId: string) {
+  function addToCart(product: Product) {
     setCart((current) => {
-      const existed = current.find((item) => item.productId === productId);
-      if (existed) return current.map((item) => (item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item));
-      return [...current, { productId, quantity: 1 }];
+      const existed = current.find((item) => item.productId === product.id);
+      if (existed)
+        return current.map((item) =>
+          item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      return [...current, { productId: product.id, quantity: 1 }];
     });
     setCartOpen(true);
   }
@@ -201,6 +249,12 @@ export default function HomePage() {
 
   function removeFromCart(productId: string) {
     setCart((current) => current.filter((item) => item.productId !== productId));
+  }
+
+  function toggleWishlist(productId: string) {
+    setWishlist((current) =>
+      current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId]
+    );
   }
 
   function closeFlashPopup() {
@@ -219,319 +273,364 @@ export default function HomePage() {
   }
 
   async function applyVoucher() {
-    if (!voucherInput.trim()) return setVoucher({ code: "", valid: false, discountAmount: 0, message: "Vui lòng nhập mã voucher" });
-    if (!cartTotal) return setVoucher({ code: voucherInput, valid: false, discountAmount: 0, message: "Giỏ hàng đang trống" });
+    if (!voucherInput.trim())
+      return setVoucher({ code: "", valid: false, discountAmount: 0, message: "Vui lòng nhập mã voucher" });
+    if (!cartTotal)
+      return setVoucher({ code: voucherInput, valid: false, discountAmount: 0, message: "Giỏ hàng đang trống" });
     setVoucherLoading(true);
-    const res = await fetch("/api/vouchers/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code: voucherInput,
-        amount: cartTotal,
-        items: detailedCart.map((item) => ({ productId: item.productId, quantity: item.quantity }))
-      })
-    });
-    const data = await res.json();
-    setVoucherLoading(false);
-    setVoucher({
-      code: voucherInput.trim().toUpperCase(),
-      valid: Boolean(data.valid),
-      discountAmount: Number(data.discountAmount || 0),
-      eligibleAmount: Number(data.eligibleAmount || 0),
-      eligibleProductNames: Array.isArray(data.eligibleProductNames) ? data.eligibleProductNames : [],
-      message: data.message || (data.valid ? "Đã áp dụng voucher" : "Voucher không hợp lệ")
-    });
+    try {
+      const res = await fetch("/api/vouchers/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: voucherInput,
+          amount: cartTotal,
+          items: detailedCart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        }),
+      });
+      const data = await res.json();
+      setVoucher({
+        code: voucherInput.trim().toUpperCase(),
+        valid: Boolean(data.valid),
+        discountAmount: Number(data.discountAmount || 0),
+        eligibleAmount: Number(data.eligibleAmount || 0),
+        eligibleProductNames: Array.isArray(data.eligibleProductNames) ? data.eligibleProductNames : [],
+        message: data.message || (data.valid ? "Đã áp dụng voucher" : "Voucher không hợp lệ"),
+      });
+    } catch {
+      setVoucher({ code: voucherInput, valid: false, discountAmount: 0, message: "Lỗi kết nối" });
+    } finally {
+      setVoucherLoading(false);
+    }
   }
 
   async function createOrder(formData: FormData) {
     if (!detailedCart.length) return alert("Giỏ hàng đang trống");
     setLoading(true);
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: detailedCart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-        voucherCode: voucher?.valid ? voucher.code : undefined,
-        customerName: formData.get("customerName"),
-        customerContact: formData.get("customerContact"),
-        customerEmail: formData.get("customerEmail"),
-        customerNote: formData.get("customerNote")
-      })
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) return alert(data.error || "Không tạo được đơn hàng");
-    localStorage.removeItem(CART_KEY);
-    setCart([]);
-    setVoucher(null);
-    setCartOpen(false);
-    setPaymentOrder(data.order);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: detailedCart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+          voucherCode: voucher?.valid ? voucher.code : undefined,
+          customerName: formData.get("customerName"),
+          customerContact: formData.get("customerContact"),
+          customerEmail: formData.get("customerEmail"),
+          customerNote: formData.get("customerNote"),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Không tạo được đơn hàng");
+        return;
+      }
+      localStorage.removeItem(CART_KEY);
+      setCart([]);
+      setVoucher(null);
+      setCartOpen(false);
+      setPaymentOrder(data.order);
+    } catch {
+      alert("Lỗi kết nối máy chủ");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <main className={settings.themeMode === "dark" ? "theme-dark" : "theme-light"} style={{ ["--accent" as string]: settings.accentColor }}>
-      <div className="top-alert"><div className="marquee"><span>🔥 {settings.warningText}</span><span>🔥 {settings.warningText}</span></div></div>
-      <div className="event-strip">✅ {settings.eventText}</div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 noel-hero-bg relative">
+      <Snow />
+      <Header
+        siteTitle={settings.siteTitle || "Minh Wuan Store"}
+        brandDomain={settings.brandDomain || "minhwuan.com"}
+        cartCount={cartQuantity}
+        onOpenCart={() => setCartOpen(true)}
+        onSearch={setKeyword}
+      />
 
-      {flashSaleActive && <button className="flash-sale-floating" onClick={() => setFlashOpen(true)}>⚡ Flash Sale</button>}
+      {/* Noel marquee */}
+      <div className="overflow-hidden border-b border-red-100 dark:border-red-900/30 bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 py-2">
+        <div className="marquee-track text-sm font-bold text-white">
+          <span className="px-8">🎄 {settings.eventText || "Noel Sale – App Pro/Premium giá tốt"} · VietQR tự động · Kích hoạt 1–5 phút · Bảo hành rõ ràng 🎄</span>
+          <span className="px-8">🎄 {settings.eventText || "Noel Sale – App Pro/Premium giá tốt"} · VietQR tự động · Kích hoạt 1–5 phút · Bảo hành rõ ràng 🎄</span>
+        </div>
+      </div>
 
-
-      <div className="container">
-        <nav className="nav">
-          <a className="brand" href="#top" aria-label={settings.siteTitle}>
-            <span className="brand-mark">MW</span>
-            <span><b>{settings.siteTitle}</b><small>{settings.brandDomain}</small></span>
-          </a>
-          <div className="nav-links">
-            <a href="#products">Sản phẩm</a>
-            <a href="#checkout">Thanh toán</a>
-            <button className="cart-button" onClick={() => setCartOpen(true)}>🛒 Giỏ hàng <b>{cartQuantity}</b></button>
-          </div>
-        </nav>
-
-        <section className="hero" id="top">
-          <div className="hero-copy">
-            <span className="eyebrow">{settings.siteSubtitle}</span>
-            <h1>{settings.heroTitle}</h1>
-            <p>{settings.heroDescription}</p>
-            <div className="actions">
-              <a className="btn" href="#products">Xem bảng giá</a>
-              <button className="btn secondary" onClick={() => setCartOpen(true)}>Mở giỏ hàng</button>
+      <main className="container-main py-8">
+        {/* Hero */}
+        <section className="hero-enter mb-12 grid gap-8 lg:grid-cols-2 lg:items-center">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-red-50 dark:bg-red-950/40 px-3 py-1 text-xs font-bold text-red-700 dark:text-red-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              {settings.siteSubtitle || "Noel 2026 · App Premium"}
             </div>
-            <div className="hero-badges"><span>✔ Bảo hành</span><span>✔ Kích hoạt 1–5 phút</span><span>✔ Voucher thanh toán</span></div>
-          </div>
-          <div className="hero-panel product-showcase">
-            <div className="light-orb orb-one" />
-            <div className="light-orb orb-two" />
-            <div className="showcase-icon big">🤖</div>
-            <div className="showcase-icon mid">🎬</div>
-            <div className="showcase-icon small">🎧</div>
-            <div className="glass-card floating-card top-card"><span>🔥 App Premium</span><b>Update 8/7</b></div>
-            <div className="glass-card hero-card">
-              <div className="card-head"><span className="app-icon">QR</span><div><b>Thanh toán tự động</b><small>VietQR · MB Bank · SePay</small></div></div>
-              <div className="mini-list"><span>Tổng giỏ hàng</span><strong>{formatMoney(cartTotal)}</strong></div>
-              <div className="mini-list"><span>Voucher</span><strong>{discountAmount ? `-${formatMoney(discountAmount)}` : "Có hỗ trợ"}</strong></div>
-              <div className="mini-list"><span>Cần thanh toán</span><strong>{formatMoney(payableTotal)}</strong></div>
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
+              {settings.heroTitle || (
+                <>
+                  Mua App Pro/Premium{" "}
+                  <span className="text-noel">giá tốt</span>
+                </>
+              )}
+            </h1>
+            <p className="mt-4 max-w-xl text-base text-slate-500 dark:text-slate-400">
+              {settings.heroDescription ||
+                "ChatGPT, CapCut, Netflix, YouTube Premium, Gemini. Thanh toán VietQR tự động, bảo hành rõ ràng, kích hoạt nhanh 1–5 phút."}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a href="#products" className="btn-primary">
+                <Gift className="h-4 w-4" /> Xem bảng giá
+              </a>
+              <button type="button" onClick={() => setCartOpen(true)} className="btn-secondary">
+                Mở giỏ hàng ({cartQuantity})
+              </button>
             </div>
-            <div className="glass-card floating-card bottom-card"><span>🎁 Event Free</span><b>Thứ 4 & Thứ 7</b></div>
+            <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+              <span className="rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">✔ Bảo hành</span>
+              <span className="rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">✔ Kích hoạt 1–5 phút</span>
+              <span className="rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">✔ VietQR tự động</span>
+            </div>
+          </div>
+          <div className="card-surface hero-float relative overflow-hidden p-6">
+            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-red-500/10 blur-2xl" />
+            <div className="relative space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 text-white">
+                  <QrCode className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-slate-50">Thanh toán tự động</div>
+                  <div className="text-xs text-slate-500">VietQR · SePay · MB Bank</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-3">
+                  <div className="text-xs text-slate-500">Giỏ hàng</div>
+                  <div className="font-black text-lg">{formatMoney(cartTotal)}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-3">
+                  <div className="text-xs text-slate-500">Cần thanh toán</div>
+                  <div className="font-black text-lg text-red-600">{formatMoney(payableTotal)}</div>
+                </div>
+              </div>
+              <div className="text-center text-4xl">🎄</div>
+            </div>
           </div>
         </section>
 
-        <section id="products" className="products-section">
-          <div className="section-head split">
-            <div><span className="eyebrow">Bảng giá App Pro/Premium</span><h2>Chọn sản phẩm và thêm vào giỏ</h2></div>
-            <input className="search" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm ChatGPT, CapCut, Canva, YouTube..." />
+        {/* Products */}
+        <section id="products" className="mb-16">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-red-600/80">Bảng giá</div>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-slate-50 sm:text-3xl">
+                Chọn sản phẩm & thêm vào giỏ
+              </h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              >
+                <option value="default">Mặc định</option>
+                <option value="price-asc">Giá tăng dần</option>
+                <option value="price-desc">Giá giảm dần</option>
+                <option value="name">Tên A–Z</option>
+              </select>
+            </div>
           </div>
 
-          <div className="category-row">
-            {categories.map((item) => <button key={item} className={category === item ? "chip active" : "chip"} onClick={() => setCategory(item)}>{item}</button>)}
+          <div className="mb-6 flex flex-wrap gap-2">
+            {categories.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setCategory(item)}
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm font-bold transition",
+                  category === item
+                    ? "bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md"
+                    : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-red-300"
+                )}
+              >
+                {item}
+              </button>
+            ))}
           </div>
 
-          {filteredProducts.length === 0 ? <div className="empty">Không tìm thấy sản phẩm phù hợp.</div> : (
-            <div className="product-grid">
-              {filteredProducts.map((product) => {
-                const activePrice = getActiveFlashSalePrice(product, settings, now);
-                const hasFlashSale = product.price > 0 && activePrice < product.price;
-
+          {filteredProducts.length === 0 ? (
+            <div className="card-surface py-16 text-center text-slate-500">Không tìm thấy sản phẩm phù hợp.</div>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product, idx) => {
+                const salePrice = getActiveFlashSalePrice(product, settings, now);
                 return (
-                  <article className={hasFlashSale ? "product-card product-card-animated product-card-sale" : "product-card product-card-animated"} key={product.id}>
-                    <div className="product-image">
-                      {isImageUrl(product.image) ? <img src={product.image} alt={product.name} /> : <span>{product.image || "💎"}</span>}
-                      {hasFlashSale ? <b>SALE</b> : product.badge && <b>{product.badge}</b>}
-                    </div>
-                    <div className="product-top"><span className="label">{product.category}</span><span className="duration">{product.duration}</span></div>
-                    <h3>{product.name}</h3>
-                    <p>{product.description}</p>
-                    <div className="price-row">
-                      {product.price > 0 ? (
-                        hasFlashSale ? (
-                          <b className="sale-price-display"><del>{formatMoney(product.price)}</del><span>{formatMoney(activePrice)}</span></b>
-                        ) : (
-                          <b>{formatMoney(product.price)}</b>
-                        )
-                      ) : (
-                        <b>Liên hệ</b>
-                      )}
-                      <small>{hasFlashSale ? "Đang áp dụng giá Flash Sale" : "Bảo hành trong thời gian sử dụng"}</small>
-                    </div>
-                    <div className="product-actions">
-                      {product.price > 0 ? (
-                        <>
-                          <button className="btn wide" onClick={() => addToCart(product.id)}>Thêm vào giỏ</button>
-                          <button className="btn secondary wide" onClick={() => { addToCart(product.id); document.getElementById("checkout")?.scrollIntoView({ behavior: "smooth" }); }}>Mua ngay</button>
-                        </>
-                      ) : (
-                        <a className="btn wide" href={settings.zaloLink} target="_blank">Liên hệ báo giá</a>
-                      )}
-                    </div>
-                  </article>
+                  <div key={product.id} className="reveal-card" style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}>
+                    <ProductCard
+                      product={product}
+                      salePrice={salePrice < product.price ? salePrice : undefined}
+                      onAddToCart={addToCart}
+                      onBuyNow={(p) => {
+                        addToCart(p);
+                      }}
+                      isFavorite={wishlist.includes(product.id)}
+                      onToggleFavorite={() => toggleWishlist(product.id)}
+                    />
+                  </div>
                 );
               })}
             </div>
           )}
         </section>
 
-        <section className="commitments">
-          <article><span>🛡️</span><h3>Bảo hành rõ ràng</h3><p>Bảo hành trong thời gian sử dụng. Lỗi sẽ được hỗ trợ nhanh nhất.</p></article>
-          <article><span>⚡</span><h3>Kích hoạt nhanh</h3><p>Shop xử lý và kích hoạt nhanh khoảng 1–5 phút sau khi xác nhận thanh toán.</p></article>
-          <article><span>🏦</span><h3>VietQR tự động</h3><p>QR tạo theo đúng số tiền, mã đơn và voucher để dễ khớp giao dịch.</p></article>
-          <article><span>🎁</span><h3>Event Free</h3><p>Tặng Free 2 lần mỗi tuần vào tối thứ 4 và tối thứ 7.</p></article>
-        </section>
-
-        <section id="checkout" className="checkout-card">
-          <div>
-            <span className="eyebrow">Checkout</span>
-            <h2>Thanh toán giỏ hàng</h2>
-            <p>Điền thông tin khách, nhập voucher nếu có. Website tạo mã đơn và VietQR riêng. Sau khi giao dịch được xác nhận, shop sẽ liên hệ và bàn giao sản phẩm.</p>
-          </div>
-          <form className="form" action={createOrder}>
-            <div className="cart-summary">
-              <h3>Giỏ hàng của bạn</h3>
-              {detailedCart.length ? detailedCart.map((item) => (
-                <div className="cart-line" key={item.productId}><span>{item.name} x{item.quantity}</span><b>{formatMoney(item.subtotal)}</b></div>
-              )) : <p className="muted">Chưa có sản phẩm trong giỏ.</p>}
-              <div className="voucher-box">
-                <input value={voucherInput} onChange={(e) => setVoucherInput(e.target.value)} placeholder="Nhập mã voucher" />
-                <button className="btn secondary" type="button" onClick={applyVoucher} disabled={voucherLoading || !cartTotal}>{voucherLoading ? "Đang kiểm tra..." : "Áp dụng"}</button>
+        {/* Trust */}
+        <section className="mb-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: Shield, title: "Bảo hành rõ ràng", desc: "Trong thời gian sử dụng" },
+            { icon: Zap, title: "Kích hoạt nhanh", desc: "1–5 phút sau thanh toán" },
+            { icon: QrCode, title: "VietQR tự động", desc: "QR đúng số tiền & mã đơn" },
+            { icon: Gift, title: "Event Free", desc: "Tối thứ 4 & thứ 7" },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="card-surface flex gap-3 p-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600">
+                <Icon className="h-5 w-5" />
               </div>
-              {voucher && <div className={voucher.valid ? "notice success compact" : "notice error compact"}>{voucher.message}{voucher.valid ? ` · Giảm ${formatMoney(voucher.discountAmount)}${voucher.eligibleAmount ? ` trên ${formatMoney(voucher.eligibleAmount)}` : ""}` : ""}</div>}
-              <div className="cart-line"><span>Tạm tính</span><b>{formatMoney(cartTotal)}</b></div>
-              {discountAmount > 0 && <div className="cart-line discount"><span>Voucher {voucher?.code}</span><b>-{formatMoney(discountAmount)}</b></div>}
-              <div className="cart-total"><span>Tổng cần thanh toán</span><b>{formatMoney(payableTotal)}</b></div>
-            </div>
-            <input required name="customerName" placeholder="Tên khách hàng" />
-            <input required name="customerContact" placeholder="SĐT/Zalo/Facebook để shop gửi sản phẩm" />
-            <input name="customerEmail" placeholder="Email nếu cần" />
-            <textarea name="customerNote" placeholder="Ghi chú cho shop nếu cần hỗ trợ thêm" rows={3} />
-            <button className="btn wide" disabled={loading || !detailedCart.length}>{loading ? "Đang tạo đơn..." : `Thanh toán ${formatMoney(payableTotal)}`}</button>
-            <a className="text-link" href={settings.zaloLink} target="_blank">Cần hỗ trợ? Nhắn Zalo</a>
-          </form>
-        </section>
-      </div>
-
-      <button className="cart-float" onClick={() => setCartOpen(true)}>🛒 {cartQuantity}</button>
-      <a className="zalo-float" href={settings.zaloLink} target="_blank">Zalo</a>
-
-      {cartOpen && (
-        <div className="modal-backdrop" onClick={() => setCartOpen(false)}>
-          <div className="modal cart-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close" onClick={() => setCartOpen(false)}>×</button>
-            <h2>Giỏ hàng</h2>
-            {detailedCart.length ? detailedCart.map((item) => (
-              <div className="cart-item" key={item.productId}>
-                <div><b>{item.name}</b><small>{formatMoney(item.price)} · {item.duration}</small></div>
-                <div className="qty-box"><button onClick={() => changeQuantity(item.productId, item.quantity - 1)}>-</button><span>{item.quantity}</span><button onClick={() => changeQuantity(item.productId, item.quantity + 1)}>+</button></div>
-                <b>{formatMoney(item.subtotal)}</b>
-                <button className="remove" onClick={() => removeFromCart(item.productId)}>Xóa</button>
-              </div>
-            )) : <p className="muted">Giỏ hàng đang trống.</p>}
-            <div className="cart-total large"><span>Tổng cộng</span><b>{formatMoney(cartTotal)}</b></div>
-            <button className="btn wide" onClick={() => { setCartOpen(false); document.getElementById("checkout")?.scrollIntoView({ behavior: "smooth" }); }} disabled={!detailedCart.length}>Đi tới thanh toán</button>
-            <button className="btn secondary wide" onClick={() => setCommunityOpen(true)}>Liên hệ hỗ trợ</button>
-          </div>
-        </div>
-      )}
-
-      {paymentOrder && (() => {
-        const expiresAt = paymentOrder.expiresAt ? new Date(paymentOrder.expiresAt).getTime() : 0;
-        const isExpired = paymentOrder.status === "pending" && expiresAt > 0 && expiresAt <= now;
-        const remaining = expiresAt > 0 ? formatRemaining(expiresAt - now) : "15:00";
-        const paymentItems = paymentOrder.items?.length ? paymentOrder.items : [];
-        return (
-          <div className="modal-backdrop payment-backdrop" onClick={() => setPaymentOrder(null)}>
-            <div className="modal payment-modal" onClick={(e) => e.stopPropagation()}>
-              <button className="close" onClick={() => setPaymentOrder(null)}>×</button>
-              <span className="eyebrow">Thanh toán VietQR</span>
-              <h2>Đơn hàng đang chờ thanh toán</h2>
-              <p>Mã đơn: <b>{paymentOrder.id}</b></p>
-              <div className="cart-summary payment-summary">
-                {paymentItems.map((item) => (
-                  <div className="cart-line" key={item.productId}><span>{item.name} x{item.quantity}</span><b>{formatMoney(item.subtotal)}</b></div>
-                ))}
-                {Boolean(paymentOrder.originalAmount && paymentOrder.discountAmount) && <div className="cart-line"><span>Tạm tính</span><b>{formatMoney(paymentOrder.originalAmount || paymentOrder.amount)}</b></div>}
-                {Boolean(paymentOrder.discountAmount) && <div className="cart-line discount"><span>Voucher {paymentOrder.voucherCode}</span><b>-{formatMoney(paymentOrder.discountAmount || 0)}</b></div>}
-                <div className="cart-total"><span>Cần thanh toán</span><b>{formatMoney(paymentOrder.amount)}</b></div>
-              </div>
-              <div className="payment-code">Nội dung CK: <b>{paymentOrder.paymentContent}</b></div>
-              {paymentOrder.status === "pending" && !isExpired ? (
-                <>
-                  <div className="status pending-status">⏳ Đang chờ thanh toán · còn <b>{remaining}</b></div>
-                  {paymentOrder.qrCode && <img className="qr popup-qr" src={paymentOrder.qrCode} alt="QR thanh toán" />}
-                  <p className="muted center">Quét QR và giữ nguyên số tiền + nội dung chuyển khoản. Sau khi SePay xác nhận, shop sẽ gửi sản phẩm thủ công qua thông tin bạn đã nhập.</p>
-                </>
-              ) : paymentOrder.status === "pending" && isExpired ? (
-                <div className="notice error">Đơn đã hết hạn sau 15 phút. Vui lòng tạo đơn mới.</div>
-              ) : (
-                <div className="status">✅ Đã thanh toán. Shop đã nhận thông tin và sẽ gửi sản phẩm cho bạn.</div>
-              )}
-              <a className="text-link" href={`/checkout/${paymentOrder.id}`}>Mở trang thanh toán chi tiết</a>
-            </div>
-          </div>
-        );
-      })()}
-
-      {flashOpen && flashSaleActive && (
-        <div className="modal-backdrop flash-popup-backdrop" onClick={closeFlashPopup}>
-          <div className="modal flash-sale-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="close" onClick={closeFlashPopup}>×</button>
-            <div className="flash-popup-head">
-              <span className="flash-badge">⚡ {settings.flashSaleBadge || "FLASH SALE"}</span>
               <div>
-                <h2>{settings.flashSaleTitle || "Flash Sale App Premium"}</h2>
-                <p>{settings.flashSaleDescription || "Ưu đãi nhanh trong thời gian giới hạn."}</p>
+                <div className="font-bold text-slate-900 dark:text-slate-50">{title}</div>
+                <div className="text-sm text-slate-500">{desc}</div>
               </div>
             </div>
-            <div className="flash-popup-timer">
-              <span>{flashEndsAt > 0 ? "Kết thúc sau" : "Trạng thái"}</span>
-              <b>{flashRemaining}</b>
-            </div>
-            <div className="flash-popup-products">
-              {flashProducts.slice(0, 6).map((product) => {
-                const salePrice = getActiveFlashSalePrice(product, settings, now);
-                const hasSale = salePrice < product.price;
-                return (
-                  <button
-                    key={product.id}
-                    className="flash-popup-product"
-                    onClick={() => {
-                      addToCart(product.id);
-                      closeFlashPopup();
-                      setCartOpen(true);
-                    }}
-                  >
-                    {isImageUrl(product.image) ? <img src={product.image} alt={product.name} /> : <span>{product.image || "💎"}</span>}
-                    <div>
-                      <b>{product.name}</b>
-                      <small>{product.duration}</small>
-                    </div>
-                    <strong>{hasSale ? <><del>{formatMoney(product.price)}</del>{formatMoney(salePrice)}</> : formatMoney(product.price)}</strong>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flash-popup-actions">
-              <button className="btn wide" onClick={() => { closeFlashPopup(); document.getElementById("products")?.scrollIntoView({ behavior: "smooth" }); }}>
-                {settings.flashSaleCta || "Mua ngay"}
-              </button>
-              <button className="btn secondary wide" onClick={closeFlashPopup}>Để sau</button>
+          ))}
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-8 text-center text-sm text-slate-500">
+        <div className="container-main">
+          © {new Date().getFullYear()} {settings.siteTitle || "Minh Wuan Store"} · {settings.brandDomain || "minhwuan.com"}
+        </div>
+      </footer>
+
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        items={detailedCart}
+        voucherInput={voucherInput}
+        onVoucherInput={setVoucherInput}
+        voucher={voucher}
+        voucherLoading={voucherLoading}
+        onApplyVoucher={applyVoucher}
+        onChangeQuantity={changeQuantity}
+        onRemove={removeFromCart}
+        cartTotal={cartTotal}
+        discountAmount={discountAmount}
+        payableTotal={payableTotal}
+        onCheckout={createOrder}
+        loading={loading}
+        zaloLink={settings.zaloLink}
+      />
+
+      {/* Payment modal */}
+      {paymentOrder && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop-noel">
+          <div className="card-surface relative w-full max-w-md p-6">
+            <button
+              type="button"
+              onClick={() => setPaymentOrder(null)}
+              className="absolute right-3 top-3 rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h3 className="text-xl font-black">Thanh toán đơn hàng</h3>
+            <p className="mt-1 text-sm text-slate-500">Mã: {paymentOrder.id}</p>
+            <div className="mt-4 text-2xl font-black text-red-600">{formatMoney(paymentOrder.amount)}</div>
+            {paymentOrder.qrCode && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={paymentOrder.qrCode} alt="VietQR" className="mx-auto mt-4 max-w-[240px] rounded-xl bg-white p-2" />
+            )}
+            <p className="mt-3 text-center text-xs text-slate-500">
+              {paymentOrder.status === "pending" ? "Đang chờ thanh toán..." : paymentOrder.status}
+            </p>
+            {paymentOrder.status === "paid" || paymentOrder.status === "completed" ? (
+              <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 font-bold">
+                <CheckCircle2 className="h-5 w-5" /> Đã thanh toán thành công
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Flash sale popup */}
+      {flashOpen && flashSaleActive && (
+        <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 modal-backdrop-noel">
+          <div className="card-surface relative w-full max-w-lg p-6">
+            <button type="button" onClick={closeFlashPopup} className="absolute right-3 top-3 rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="mb-2 text-xs font-bold uppercase text-red-600">⚡ Flash Sale</div>
+            <h3 className="text-xl font-black">Ưu đãi đang diễn ra</h3>
+            <p className="mt-1 text-sm text-slate-500">Còn lại: {flashRemaining}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {flashProducts.slice(0, 4).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    addToCart(p);
+                    closeFlashPopup();
+                  }}
+                  className="rounded-2xl border border-slate-200 dark:border-slate-700 p-3 text-left hover:border-red-300"
+                >
+                  <div className="font-bold text-sm">{p.name}</div>
+                  <div className="text-red-600 font-black">{formatMoney(getActiveFlashSalePrice(p, settings, now))}</div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
       )}
 
+      {/* Community popup */}
       {communityOpen && (
-        <div className="modal-backdrop" onClick={closeCommunityPopup}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close" onClick={closeCommunityPopup}>×</button>
-            <h2>{settings.communityPopupTitle || "Tham gia nhóm cộng đồng Zalo"}</h2>
-            <p>{settings.communityPopupDescription || "Nhận thông báo event Free, cập nhật bảng giá và ưu đãi mới."}</p>
-            <a className="btn wide" href={settings.communityLink} target="_blank" onClick={closeCommunityPopup}>Tham gia nhóm ngay</a>
-            <button className="btn secondary wide" onClick={closeCommunityPopup}>Để sau</button>
+        <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 modal-backdrop-noel">
+          <div className="card-surface relative w-full max-w-sm p-6 text-center">
+            <button type="button" onClick={closeCommunityPopup} className="absolute right-3 top-3 rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="text-4xl mb-3">🎄</div>
+            <h3 className="text-lg font-black">Tham gia cộng đồng</h3>
+            <p className="mt-2 text-sm text-slate-500">Nhận deal, voucher và hỗ trợ nhanh qua Zalo.</p>
+            <a
+              href={settings.zaloLink || "https://zalo.me/0359868717"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary mt-5 w-full"
+              onClick={closeCommunityPopup}
+            >
+              Chat Zalo ngay
+            </a>
           </div>
         </div>
       )}
 
-      <footer className="footer"><div className="container"><b>{settings.siteTitle}</b><span>App Pro/Premium · Voucher · Thanh toán tự động · Admin gửi sản phẩm thủ công</span></div></footer>
-    </main>
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-24 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
+      )}
+
+      {flashSaleActive && !flashOpen && (
+        <button
+          type="button"
+          onClick={() => setFlashOpen(true)}
+          className="fixed bottom-6 left-4 z-40 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/30 transition hover:scale-105"
+        >
+          ⚡ Flash Sale
+        </button>
+      )}
+    </div>
   );
 }
