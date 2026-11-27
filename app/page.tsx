@@ -8,7 +8,7 @@ import { Header } from "@/components/header";
 import { Snow } from "@/components/snow";
 import { ProductCard } from "@/components/product-card";
 import { CartDrawer } from "@/components/cart-drawer";
-import { Shield, Zap, QrCode, Gift, X, Clock, CheckCircle2, Heart, ArrowUpDown, Sparkles, ArrowUp, RotateCcw } from "lucide-react";
+import { Shield, Zap, QrCode, Gift, X, CheckCircle2, Sparkles, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CART_KEY = "minhwuan_cart";
@@ -348,7 +348,6 @@ export default function HomePage() {
         onSearch={setKeyword}
       />
 
-      {/* Noel marquee */}
       <div className="overflow-hidden border-b border-red-100 dark:border-red-900/30 bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 py-2">
         <div className="marquee-track text-sm font-bold text-white">
           <span className="px-8">🎄 {settings.eventText || "Noel Sale – App Pro/Premium giá tốt"} · VietQR tự động · Kích hoạt 1–5 phút · Bảo hành rõ ràng 🎄</span>
@@ -357,7 +356,6 @@ export default function HomePage() {
       </div>
 
       <main className="container-main py-8">
-        {/* Hero */}
         <section className="hero-enter mb-12 grid gap-8 lg:grid-cols-2 lg:items-center">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-red-50 dark:bg-red-950/40 px-3 py-1 text-xs font-bold text-red-700 dark:text-red-300">
@@ -417,7 +415,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Products */}
         <section id="products" className="mb-16">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -483,7 +480,6 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Trust */}
         <section className="mb-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { icon: Shield, title: "Bảo hành rõ ràng", desc: "Trong thời gian sử dụng" },
@@ -529,7 +525,6 @@ export default function HomePage() {
         zaloLink={settings.zaloLink}
       />
 
-      {/* Payment modal */}
       {paymentOrder && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop-noel">
           <div className="card-surface relative w-full max-w-md p-6">
@@ -550,7 +545,7 @@ export default function HomePage() {
             <p className="mt-3 text-center text-xs text-slate-500">
               {paymentOrder.status === "pending" ? "Đang chờ thanh toán..." : paymentOrder.status}
             </p>
-            {paymentOrder.status === "paid" || paymentOrder.status === "completed" ? (
+            {paymentOrder.status === "paid" || paymentOrder.status === "delivered" ? (
               <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 font-bold">
                 <CheckCircle2 className="h-5 w-5" /> Đã thanh toán thành công
               </div>
@@ -559,7 +554,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Flash sale popup */}
       {flashOpen && flashSaleActive && (
         <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 modal-backdrop-noel">
           <div className="card-surface relative w-full max-w-lg p-6">
@@ -589,7 +583,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Community popup */}
       {communityOpen && (
         <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 modal-backdrop-noel">
           <div className="card-surface relative w-full max-w-sm p-6 text-center">
