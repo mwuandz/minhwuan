@@ -31,7 +31,6 @@ export type SiteSettings = {
   flashSaleBadge?: string;
   flashSaleEndsAt?: string;
   flashSaleProductIds?: string[];
-  /** Optional sale price by product ID for Flash Sale. Empty/0 means use normal price. */
   flashSalePrices?: Record<string, number>;
   flashSaleCta?: string;
   themeMode: "light" | "dark";
@@ -61,7 +60,6 @@ export type Voucher = {
   expiresAt?: string;
   active?: boolean;
   createdAt?: string;
-  /** Empty/undefined means all products. Otherwise only these product IDs are eligible. */
   applicableProductIds?: string[];
 };
 
@@ -105,7 +103,7 @@ export type Order = {
 export type Customer = {
   id: string;
   name: string;
-  contact: string; // Zalo / SĐT (unique)
+  contact: string;
   email?: string;
   passwordHash: string;
   createdAt: string;
@@ -125,4 +123,49 @@ export type CustomerPublic = {
   contact: string;
   email?: string;
   createdAt: string;
+};
+
+export type SpinPrizeType = "voucher" | "product" | "gift" | "nothing";
+
+export type SpinPrize = {
+  id: string;
+  label: string;
+  type: SpinPrizeType;
+  weight: number;
+  color?: string;
+  voucherCode?: string;
+  productId?: string;
+  note?: string;
+};
+
+export type SpinConfig = {
+  enabled: boolean;
+  title: string;
+  description: string;
+  minOrderAmount: number;
+  oncePerOrder: boolean;
+  prizes: SpinPrize[];
+  updatedAt?: string;
+};
+
+export type SpinResult = {
+  id: string;
+  orderId: string;
+  prizeId: string;
+  prizeLabel: string;
+  prizeType: SpinPrizeType;
+  customerContact?: string;
+  createdAt: string;
+};
+
+export type AnnouncementType = "product" | "price" | "promo" | "system";
+
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  type: AnnouncementType;
+  active: boolean;
+  createdAt: string;
+  endsAt?: string;
 };
