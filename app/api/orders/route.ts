@@ -7,14 +7,19 @@ function makeOrderCode() {
   return Date.now();
 }
 
-
-function getActiveFlashSalePrice(product: { id: string; price: number; badge?: string; category: string }, settings: any, nowMs: number) {
+function getActiveFlashSalePrice(
+  product: { id: string; price: number; badge?: string; category: string },
+  settings: any,
+  nowMs: number
+) {
   const endsAt = settings.flashSaleEndsAt ? new Date(settings.flashSaleEndsAt).getTime() : 0;
   if (settings.flashSaleEnabled === false) return product.price;
   if (endsAt > 0 && endsAt <= nowMs) return product.price;
 
   const selectedIds = settings.flashSaleProductIds || [];
-  const isSelected = selectedIds.length ? selectedIds.includes(product.id) : /hot|best|combo|giá tốt|rẻ/i.test(`${product.badge || ""} ${product.category}`);
+  const isSelected = selectedIds.length
+    ? selectedIds.includes(product.id)
+    : /hot|best|combo|giá tốt|rẻ/i.test(`${product.badge || ""} ${product.category}`);
   if (!isSelected) return product.price;
 
   const salePrice = Number(settings.flashSalePrices?.[product.id] || 0);
@@ -34,24 +39,27 @@ function makeVietQrUrl(amount: number, paymentContent: string) {
 async function normalizeItems(body: any): Promise<CartItem[]> {
   const settings = await getSettings();
   const nowMs = Date.now();
-  const rawItems = Array.isArray(body.items) ? body.items : body.productId ? [{ productId: body.productId, quantity: 1 }] : [];
+  const rawItems = Array.isArray(body.items)
+    ? body.items
+    : body.productId
+      ? [{ productId: body.productId, quantity: 1 }]
+      : [];
 
-  const mapped = rawItems
-    .map(async (item: any) => {
-      const product = await getProduct(String(item.productId || ""));
-      if (!product) return null;
-      const quantity = Math.max(1, Math.min(99, Number(item.quantity || 1)));
-      const activePrice = getActiveFlashSalePrice(product, settings, nowMs);
-      return {
-        productId: product.id,
-        name: product.name,
-        category: product.category,
-        duration: product.duration,
-        price: activePrice,
-        quantity,
-        subtotal: activePrice * quantity
-      } satisfies CartItem;
-    });
+  const mapped = rawItems.map(async (item: any) => {
+    const product = await getProduct(String(item.productId || ""));
+    if (!product) return null;
+    const quantity = Math.max(1, Math.min(99, Number(item.quantity || 1)));
+    const activePrice = getActiveFlashSalePrice(product, settings, nowMs);
+    return {
+      productId: product.id,
+      name: product.name,
+      category: product.category,
+      duration: product.duration,
+      price: activePrice,
+      quantity,
+      subtotal: activePrice * quantity,
+    } satisfies CartItem;
+  });
 
   const items = await Promise.all(mapped);
   return items.filter(Boolean) as CartItem[];
@@ -71,16 +79,17 @@ export async function POST(req: Request) {
     }
 
     const originalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
-    if (originalAmount <= 0) {
-      return NextResponse.json({ error: "Sản phẩm cần liên hệ shop để báo giá" }, { status: 400 });
-    }
 
     const voucherCode = String(body.voucherCode || "").trim().toUpperCase();
     const voucherResult = voucherCode ? await validateVoucher(voucherCode, originalAmount, items) : null;
     const discountAmount = voucherResult?.valid ? voucherResult.discountAmount : 0;
-    const amount = Math.max(1000, originalAmount - discountAmount);
+    // Cho phép đơn 0đ (miễn phí / voucher full). Đơn > 0 thì tối thiểu 1000đ cho VietQR.
+    const rawAmount = Math.max(0, originalAmount - discountAmount);
+    const amount = rawAmount === 0 ? 0 : Math.max(1000, rawAmount);
+    const isFree = amount === 0;
+
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+    const expiresAt = isFree ? undefined : new Date(now.getTime() + 15 * 60 * 1000).toISOString();
     const orderCode = makeOrderCode();
     const id = `MW-${orderCode}`;
     const paymentContent = id;
@@ -101,11 +110,12 @@ export async function POST(req: Request) {
       customerContact: String(body.customerContact),
       customerEmail: body.customerEmail ? String(body.customerEmail) : undefined,
       customerNote: body.customerNote ? String(body.customerNote) : undefined,
-      status: "pending",
+      status: isFree ? "paid" : "pending",
       paymentContent,
-      qrCode: makeVietQrUrl(amount, paymentContent),
+      qrCode: isFree ? undefined : makeVietQrUrl(amount, paymentContent),
       createdAt: now.toISOString(),
-      expiresAt
+      expiresAt,
+      paidAt: isFree ? now.toISOString() : undefined,
     };
 
     await saveOrder(order);
@@ -115,20 +125,36 @@ export async function POST(req: Request) {
       .join("\n");
 
     try {
-      await sendTelegramMessage(
-        `🛒 <b>ĐƠN HÀNG MỚI - CHỜ THANH TOÁN</b>\n\n` +
-        `Mã đơn: <code>${order.id}</code>\n` +
-        `Tổng gốc: ${originalAmount.toLocaleString("vi-VN")}đ\n` +
-        `${discountAmount > 0 ? `Voucher: ${voucherCode} -${discountAmount.toLocaleString("vi-VN")}đ${voucherResult?.eligibleProductNames?.length ? ` (áp dụng: ${voucherResult.eligibleProductNames.join(", ")})` : ""}\n` : ""}` +
-        `Cần thanh toán: <b>${order.amount.toLocaleString("vi-VN")}đ</b>\n` +
-        `Hết hạn: ${new Date(order.expiresAt!).toLocaleString("vi-VN")}\n\n` +
-        `<b>Sản phẩm:</b>\n${itemLines}\n\n` +
-        `<b>Khách:</b> ${order.customerName}\n` +
-        `<b>Liên hệ:</b> ${order.customerContact}\n` +
-        `${order.customerEmail ? `<b>Email:</b> ${order.customerEmail}\n` : ""}` +
-        `${order.customerNote ? `<b>Ghi chú:</b> ${order.customerNote}\n` : ""}` +
-        `Trạng thái: Chờ khách thanh toán`
-      );
+      if (isFree) {
+        await sendTelegramMessage(
+          `🎁 <b>ĐƠN MIỄN PHÍ (0đ) – ĐÃ NHẬN</b>\n\n` +
+            `Mã đơn: <code>${order.id}</code>\n` +
+            `Tổng gốc: ${originalAmount.toLocaleString("vi-VN")}đ\n` +
+            `${discountAmount > 0 ? `Voucher: ${voucherCode} -${discountAmount.toLocaleString("vi-VN")}đ\n` : ""}` +
+            `Cần thanh toán: <b>0đ</b> (bỏ qua QR)\n\n` +
+            `<b>Sản phẩm:</b>\n${itemLines}\n\n` +
+            `<b>Khách:</b> ${order.customerName}\n` +
+            `<b>Liên hệ:</b> ${order.customerContact}\n` +
+            `${order.customerEmail ? `<b>Email:</b> ${order.customerEmail}\n` : ""}` +
+            `${order.customerNote ? `<b>Ghi chú:</b> ${order.customerNote}\n` : ""}` +
+            `Trạng thái: Đã nhận – cần giao hàng`
+        );
+      } else {
+        await sendTelegramMessage(
+          `🛒 <b>ĐƠN HÀNG MỚI - CHỜ THANH TOÁN</b>\n\n` +
+            `Mã đơn: <code>${order.id}</code>\n` +
+            `Tổng gốc: ${originalAmount.toLocaleString("vi-VN")}đ\n` +
+            `${discountAmount > 0 ? `Voucher: ${voucherCode} -${discountAmount.toLocaleString("vi-VN")}đ${voucherResult?.eligibleProductNames?.length ? ` (áp dụng: ${voucherResult.eligibleProductNames.join(", ")})` : ""}\n` : ""}` +
+            `Cần thanh toán: <b>${order.amount.toLocaleString("vi-VN")}đ</b>\n` +
+            `Hết hạn: ${new Date(order.expiresAt!).toLocaleString("vi-VN")}\n\n` +
+            `<b>Sản phẩm:</b>\n${itemLines}\n\n` +
+            `<b>Khách:</b> ${order.customerName}\n` +
+            `<b>Liên hệ:</b> ${order.customerContact}\n` +
+            `${order.customerEmail ? `<b>Email:</b> ${order.customerEmail}\n` : ""}` +
+            `${order.customerNote ? `<b>Ghi chú:</b> ${order.customerNote}\n` : ""}` +
+            `Trạng thái: Chờ khách thanh toán`
+        );
+      }
     } catch (telegramError) {
       console.error("Telegram order notification failed", telegramError);
     }
