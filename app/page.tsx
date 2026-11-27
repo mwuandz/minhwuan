@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 const CART_KEY = "minhwuan_cart";
 const WISHLIST_KEY = "minhwuan_wishlist";
+const ZALO_SUPPORT = "https://zalo.me/0559331106";
 type LocalCartItem = { productId: string; quantity: number };
 
 type VoucherState = {
@@ -421,11 +422,7 @@ export default function HomePage() {
               <div className="text-xs font-bold uppercase tracking-wide text-red-600/80">Bảng giá</div>
               <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-50">Chọn sản phẩm & thêm vào giỏ</h2>
             </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="w-full sm:w-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm"
-            >
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="w-full sm:w-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm">
               <option value="default">Mặc định</option>
               <option value="price-asc">Giá tăng dần</option>
               <option value="price-desc">Giá giảm dần</option>
@@ -433,19 +430,9 @@ export default function HomePage() {
             </select>
           </div>
 
-          <div className="mb-4 sm:mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          <div className="mb-4 sm:mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {categories.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setCategory(item)}
-                className={cn(
-                  "shrink-0 rounded-full px-3.5 py-2 text-sm font-bold transition",
-                  category === item
-                    ? "bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md"
-                    : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
-                )}
-              >
+              <button key={item} type="button" onClick={() => setCategory(item)} className={cn("shrink-0 rounded-full px-3.5 py-2 text-sm font-bold transition", category === item ? "bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md" : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300")}>
                 {item}
               </button>
             ))}
@@ -459,14 +446,7 @@ export default function HomePage() {
                 const salePrice = getActiveFlashSalePrice(product, settings, now);
                 return (
                   <div key={product.id} className="reveal-card" style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}>
-                    <ProductCard
-                      product={product}
-                      salePrice={salePrice < product.price ? salePrice : undefined}
-                      onAddToCart={addToCart}
-                      onBuyNow={(p) => addToCart(p)}
-                      isFavorite={wishlist.includes(product.id)}
-                      onToggleFavorite={() => toggleWishlist(product.id)}
-                    />
+                    <ProductCard product={product} salePrice={salePrice < product.price ? salePrice : undefined} onAddToCart={addToCart} onBuyNow={(p) => addToCart(p)} isFavorite={wishlist.includes(product.id)} onToggleFavorite={() => toggleWishlist(product.id)} />
                   </div>
                 );
               })}
@@ -495,36 +475,15 @@ export default function HomePage() {
       </main>
 
       <footer className="border-t border-slate-200 dark:border-slate-800 py-6 sm:py-8 text-center text-sm text-slate-500">
-        <div className="container-main">
-          © {new Date().getFullYear()} {settings.siteTitle || "Minh Wuan Store"} · {settings.brandDomain || "minhwuan.com"}
-        </div>
+        <div className="container-main">© {new Date().getFullYear()} {settings.siteTitle || "Minh Wuan Store"} · {settings.brandDomain || "minhwuan.com"}</div>
       </footer>
 
-      <CartDrawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        items={detailedCart}
-        voucherInput={voucherInput}
-        onVoucherInput={setVoucherInput}
-        voucher={voucher}
-        voucherLoading={voucherLoading}
-        onApplyVoucher={applyVoucher}
-        onChangeQuantity={changeQuantity}
-        onRemove={removeFromCart}
-        cartTotal={cartTotal}
-        discountAmount={discountAmount}
-        payableTotal={payableTotal}
-        onCheckout={createOrder}
-        loading={loading}
-        zaloLink={settings.zaloLink}
-      />
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} items={detailedCart} voucherInput={voucherInput} onVoucherInput={setVoucherInput} voucher={voucher} voucherLoading={voucherLoading} onApplyVoucher={applyVoucher} onChangeQuantity={changeQuantity} onRemove={removeFromCart} cartTotal={cartTotal} discountAmount={discountAmount} payableTotal={payableTotal} onCheckout={createOrder} loading={loading} zaloLink={settings.zaloLink || ZALO_SUPPORT} />
 
       {paymentOrder && (
         <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop-noel">
           <div className="card-surface relative w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-h-[92vh] overflow-y-auto">
-            <button type="button" onClick={() => setPaymentOrder(null)} className="absolute right-3 top-3 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5">
-              <X className="h-5 w-5" />
-            </button>
+            <button type="button" onClick={() => setPaymentOrder(null)} className="absolute right-3 top-3 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5"><X className="h-5 w-5" /></button>
             <h3 className="text-xl font-black pr-10">Thanh toán đơn hàng</h3>
             <p className="mt-1 text-sm text-slate-500">Mã: {paymentOrder.id}</p>
             <div className="mt-4 text-2xl font-black text-red-600">{formatMoney(paymentOrder.amount)}</div>
@@ -532,14 +491,10 @@ export default function HomePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={paymentOrder.qrCode} alt="VietQR" className="mx-auto mt-4 max-w-[220px] sm:max-w-[240px] rounded-xl bg-white p-2" />
             )}
-            <p className="mt-3 text-center text-xs text-slate-500">
-              {paymentOrder.status === "pending" ? "Đang chờ thanh toán..." : paymentOrder.status}
-            </p>
-            {paymentOrder.status === "paid" || paymentOrder.status === "delivered" ? (
-              <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 font-bold">
-                <CheckCircle2 className="h-5 w-5" /> Đã thanh toán thành công
-              </div>
-            ) : null}
+            <p className="mt-3 text-center text-xs text-slate-500">{paymentOrder.status === "pending" ? "Đang chờ thanh toán..." : paymentOrder.status}</p>
+            {(paymentOrder.status === "paid" || paymentOrder.status === "delivered") && (
+              <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 font-bold"><CheckCircle2 className="h-5 w-5" /> Đã thanh toán thành công</div>
+            )}
           </div>
         </div>
       )}
@@ -548,47 +503,27 @@ export default function HomePage() {
         <div className="fixed inset-0 z-[105] flex items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop-noel">
           <div className="relative w-full max-w-lg overflow-hidden rounded-t-3xl sm:rounded-3xl border border-red-200/60 dark:border-red-900/40 bg-white dark:bg-slate-900 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-amber-400 to-emerald-600" />
-            <div className="absolute -right-6 -top-6 text-6xl opacity-20 pointer-events-none">🎄</div>
-            <button type="button" onClick={closeFlashPopup} className="absolute right-3 top-4 z-10 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5" aria-label="Đóng">
-              <X className="h-5 w-5" />
-            </button>
+            <button type="button" onClick={closeFlashPopup} className="absolute right-3 top-4 z-10 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5" aria-label="Đóng"><X className="h-5 w-5" /></button>
             <div className="p-5 sm:p-6">
-              <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-red-600 to-amber-500 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-md">
-                ⚡ Flash Sale Noel
-              </div>
-              <h3 className="mt-2 pr-10 text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50">
-                {settings.flashSaleTitle || "Ưu đãi Noel đang diễn ra"}
-              </h3>
-              <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400">
-                <Clock className="h-4 w-4" /> Còn lại: {flashRemaining}
-              </p>
-              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
+              <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-red-600 to-amber-500 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-md">⚡ Flash Sale Noel</div>
+              <h3 className="mt-2 pr-10 text-xl sm:text-2xl font-black">{settings.flashSaleTitle || "Ưu đãi Noel đang diễn ra"}</h3>
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400"><Clock className="h-4 w-4" /> Còn lại: {flashRemaining}</p>
+              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {flashProducts.slice(0, 4).map((p) => {
                   const sale = getActiveFlashSalePrice(p, settings, now);
-                  const isSale = sale < p.price;
                   return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        addToCart(p);
-                        closeFlashPopup();
-                      }}
-                      className="rounded-2xl border border-red-100 dark:border-red-900/40 bg-gradient-to-br from-red-50/80 to-amber-50/50 dark:from-red-950/30 dark:to-slate-900 p-3.5 text-left transition active:scale-[0.98] hover:border-red-300 hover:shadow-md"
-                    >
-                      <div className="font-bold text-sm text-slate-900 dark:text-slate-50 line-clamp-2">{p.name}</div>
+                    <button key={p.id} type="button" onClick={() => { addToCart(p); closeFlashPopup(); }} className="rounded-2xl border border-red-100 dark:border-red-900/40 bg-gradient-to-br from-red-50/80 to-amber-50/50 dark:from-red-950/30 dark:to-slate-900 p-3.5 text-left">
+                      <div className="font-bold text-sm line-clamp-2">{p.name}</div>
                       <div className="mt-1 flex items-baseline gap-2">
-                        <span className="text-red-600 font-black text-base">{formatMoney(sale)}</span>
-                        {isSale && <span className="text-xs text-slate-400 line-through">{formatMoney(p.price)}</span>}
+                        <span className="text-red-600 font-black">{formatMoney(sale)}</span>
+                        {sale < p.price && <span className="text-xs text-slate-400 line-through">{formatMoney(p.price)}</span>}
                       </div>
-                      <div className="mt-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">+ Thêm vào giỏ</div>
+                      <div className="mt-2 text-[11px] font-bold text-emerald-700">+ Thêm vào giỏ</div>
                     </button>
                   );
                 })}
               </div>
-              <button type="button" onClick={closeFlashPopup} className="mt-4 w-full rounded-xl border border-slate-200 dark:border-slate-700 py-3 text-sm font-bold text-slate-600 dark:text-slate-300">
-                Để sau
-              </button>
+              <button type="button" onClick={closeFlashPopup} className="mt-4 w-full rounded-xl border py-3 text-sm font-bold text-slate-600">Để sau</button>
             </div>
           </div>
         </div>
@@ -598,53 +533,40 @@ export default function HomePage() {
         <div className="fixed inset-0 z-[105] flex items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop-noel">
           <div className="relative w-full max-w-sm overflow-hidden rounded-t-3xl sm:rounded-3xl border border-emerald-200/60 dark:border-emerald-900/40 bg-white dark:bg-slate-900 shadow-2xl">
             <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500" />
-            <button type="button" onClick={closeCommunityPopup} className="absolute right-3 top-4 z-10 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5" aria-label="Đóng">
-              <X className="h-5 w-5" />
-            </button>
+            <button type="button" onClick={closeCommunityPopup} className="absolute right-3 top-4 z-10 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5" aria-label="Đóng"><X className="h-5 w-5" /></button>
             <div className="p-6 text-center">
               <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-3xl shadow-lg">💬</div>
-              <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-50">
-                Tham gia nhóm Zalo<br />Minh Wuan Store
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                Vào nhóm cộng đồng <span className="font-bold text-slate-700 dark:text-slate-200">Zalo Minh Wuan Store</span> để nhận nhiều ưu đãi và được hỗ trợ kịp thời.
-              </p>
-              <a
-                href={settings.zaloLink || "https://zalo.me/0359868717"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary mt-5 w-full"
-                onClick={closeCommunityPopup}
-              >
-                Tham gia nhóm Zalo ngay
-              </a>
-              <button type="button" onClick={closeCommunityPopup} className="mt-3 w-full py-2 text-sm font-semibold text-slate-400">
-                Để sau
-              </button>
+              <h3 className="text-lg sm:text-xl font-black">Tham gia nhóm Zalo<br />Minh Wuan Store</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-500">Vào nhóm cộng đồng <span className="font-bold text-slate-700 dark:text-slate-200">Zalo Minh Wuan Store</span> để nhận nhiều ưu đãi và được hỗ trợ kịp thời.</p>
+              <a href={settings.zaloLink || ZALO_SUPPORT} target="_blank" rel="noopener noreferrer" className="btn-primary mt-5 w-full" onClick={closeCommunityPopup}>Tham gia nhóm Zalo ngay</a>
+              <button type="button" onClick={closeCommunityPopup} className="mt-3 w-full py-2 text-sm font-semibold text-slate-400">Để sau</button>
             </div>
           </div>
         </div>
       )}
 
       {showScrollTop && (
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-24 right-3 sm:right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 safe-bottom"
-        >
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="fixed bottom-24 right-3 sm:right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 safe-bottom">
           <ArrowUp className="h-5 w-5" />
         </button>
       )}
 
       {flashSaleActive && !flashOpen && (
-        <button
-          type="button"
-          onClick={() => setFlashOpen(true)}
-          className="fixed bottom-6 left-3 sm:left-4 z-40 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-rose-500/30 transition hover:scale-105 safe-bottom"
-        >
+        <button type="button" onClick={() => setFlashOpen(true)} className="fixed bottom-6 left-3 sm:left-4 z-40 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-rose-500/30 safe-bottom">
           ⚡ Flash Sale
         </button>
       )}
+
+      <a
+        href={ZALO_SUPPORT}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-3 sm:right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#0068FF] text-white shadow-lg shadow-blue-500/40 transition hover:scale-105 hover:bg-[#0054d1] safe-bottom"
+        aria-label="Zalo hỗ trợ"
+        title="Chat Zalo hỗ trợ"
+      >
+        <span className="text-sm font-black tracking-tight">Zalo</span>
+      </a>
     </div>
   );
 }
