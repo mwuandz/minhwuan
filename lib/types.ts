@@ -135,6 +135,8 @@ export type SpinPrize = {
   color?: string;
   voucherCode?: string;
   productId?: string;
+  /** Ảnh minh họa hiện trên vòng quay */
+  image?: string;
   note?: string;
 };
 
