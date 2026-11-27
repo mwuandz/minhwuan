@@ -1,3 +1,3 @@
-export function formatMoney(value: number) {
-  return value.toLocaleString("vi-VN") + "đ";
+export function formatMoney(n: number) {
+  return Number(n || 0).toLocaleString("vi-VN") + "đ";
 }
