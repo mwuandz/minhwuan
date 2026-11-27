@@ -101,3 +101,28 @@ export type Order = {
   paidAt?: string;
   deliveredAt?: string;
 };
+
+export type Customer = {
+  id: string;
+  name: string;
+  contact: string; // Zalo / SĐT (unique)
+  email?: string;
+  passwordHash: string;
+  createdAt: string;
+  lastLoginAt?: string;
+};
+
+export type CustomerSession = {
+  token: string;
+  customerId: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+export type CustomerPublic = {
+  id: string;
+  name: string;
+  contact: string;
+  email?: string;
+  createdAt: string;
+};
