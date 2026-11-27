@@ -8,6 +8,7 @@ import { Header } from "@/components/header";
 import { Snow } from "@/components/snow";
 import { ProductCard } from "@/components/product-card";
 import { CartDrawer } from "@/components/cart-drawer";
+import { SpinWheel } from "@/components/spin-wheel";
 import { Shield, Zap, QrCode, Gift, X, CheckCircle2, Sparkles, ArrowUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,8 @@ export default function HomePage() {
   const [now, setNow] = useState(Date.now());
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [announcements, setAnnouncements] = useState<{ id: string; title: string; body: string; type: string }[]>([]);
+  const [spinOpen, setSpinOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/products")
@@ -81,6 +84,12 @@ export default function HomePage() {
       })
       .catch(() => null)
       .finally(() => setSettingsLoaded(true));
+    fetch("/api/announcements")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.announcements)) setAnnouncements(data.announcements.slice(0, 5));
+      })
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -138,7 +147,9 @@ export default function HomePage() {
     localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
   }, [wishlist, wishlistHydrated]);
 
-  useEffect(() => { setVoucher(null); }, [cart]);
+  useEffect(() => {
+    setVoucher(null);
+  }, [cart]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -247,19 +258,25 @@ export default function HomePage() {
   }
 
   function closeFlashPopup() {
-    try { sessionStorage.setItem("mw_flash_popup_seen", "1"); } catch {}
+    try {
+      sessionStorage.setItem("mw_flash_popup_seen", "1");
+    } catch {}
     setFlashOpen(false);
     setFlashDismissed(true);
   }
 
   function closeCommunityPopup() {
-    try { sessionStorage.setItem("mw_community_popup_seen", "1"); } catch {}
+    try {
+      sessionStorage.setItem("mw_community_popup_seen", "1");
+    } catch {}
     setCommunityOpen(false);
   }
 
   async function applyVoucher() {
-    if (!voucherInput.trim()) return setVoucher({ code: "", valid: false, discountAmount: 0, message: "Vui lòng nhập mã voucher" });
-    if (!cartTotal) return setVoucher({ code: voucherInput, valid: false, discountAmount: 0, message: "Giỏ hàng đang trống" });
+    if (!voucherInput.trim())
+      return setVoucher({ code: "", valid: false, discountAmount: 0, message: "Vui lòng nhập mã voucher" });
+    if (!cartTotal)
+      return setVoucher({ code: voucherInput, valid: false, discountAmount: 0, message: "Giỏ hàng đang trống" });
     setVoucherLoading(true);
     try {
       const res = await fetch("/api/vouchers/validate", {
@@ -323,13 +340,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 noel-hero-bg relative">
       <Snow />
-      <Header
-        siteTitle={settings.siteTitle || "Minh Wuan Store"}
-        brandDomain={settings.brandDomain || "minhwuan.com"}
-        cartCount={cartQuantity}
-        onOpenCart={() => setCartOpen(true)}
-        onSearch={setKeyword}
-      />
+      <Header siteTitle={settings.siteTitle || "Minh Wuan Store"} brandDomain={settings.brandDomain || "minhwuan.com"} cartCount={cartQuantity} onOpenCart={() => setCartOpen(true)} onSearch={setKeyword} />
 
       <div className="overflow-hidden border-b border-red-100 dark:border-red-900/30 bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 py-2">
         <div className="marquee-track text-[11px] sm:text-sm font-bold text-white">
@@ -338,109 +349,138 @@ export default function HomePage() {
         </div>
       </div>
 
+      {announcements.length > 0 && (
+        <div className="border-b border-amber-200/60 bg-amber-50 dark:bg-amber-950/30">
+          <div className="container-main py-2.5 space-y-1.5">
+            {announcements.slice(0, 2).map((a) => (
+              <div key={a.id} className="text-sm">
+                <span className="mr-2 rounded-full bg-amber-200/80 dark:bg-amber-800 px-2 py-0.5 text-[10px] font-black uppercase text-amber-900 dark:text-amber-100">{a.type}</span>
+                <span className="font-bold text-slate-900 dark:text-slate-50">{a.title}</span>
+                <span className="text-slate-600 dark:text-slate-300"> — {a.body}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <main className="container-main py-5 sm:py-8 pb-28 sm:pb-8">
-        <section className="hero-enter mb-8 sm:mb-12 grid gap-6 sm:gap-8 lg:grid-cols-2 lg:items-center">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-red-50 dark:bg-red-950/40 px-3 py-1 text-xs font-bold text-red-700 dark:text-red-300">
-              <Sparkles className="h-3.5 w-3.5" />
-              {settings.siteSubtitle || "Noel 2026 · App Premium"}
-            </div>
-            <h1 className="text-[1.75rem] leading-tight font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
-              {settings.heroTitle || (<><>Mua App Pro/Premium <span className="text-noel">giá tốt</span></></>)}
-            </h1>
-            <p className="mt-3 sm:mt-4 max-w-xl text-sm sm:text-base text-slate-500 dark:text-slate-400">
-              {settings.heroDescription || "ChatGPT, CapCut, Netflix, YouTube Premium, Gemini. Thanh toán VietQR tự động, bảo hành rõ ràng, kích hoạt nhanh 1–5 phút."}
-            </p>
-            <div className="mt-5 sm:mt-6 flex flex-wrap gap-2.5 sm:gap-3">
-              <a href="#products" className="btn-primary"><Gift className="h-4 w-4" /> Xem bảng giá</a>
-              <button type="button" onClick={() => setCartOpen(true)} className="btn-secondary">Giỏ hàng ({cartQuantity})</button>
-            </div>
-            <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-              <span className="rounded-full border border-slate-200 dark:border-slate-700 px-2.5 py-1">✔ Bảo hành</span>
-              <span className="rounded-full border border-slate-200 dark:border-slate-700 px-2.5 py-1">✔ 1–5 phút</span>
-              <span className="rounded-full border border-slate-200 dark:border-slate-700 px-2.5 py-1">✔ VietQR</span>
-            </div>
+        <section className="hero-enter mb-8 sm:mb-12">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-red-50 dark:bg-red-950/40 px-3 py-1 text-xs font-bold text-red-700 dark:text-red-300">
+            <Sparkles className="h-3.5 w-3.5" />
+            {settings.siteSubtitle || "Noel 2026 · App Premium"}
+          </div>
+          <h1 className="text-[1.75rem] leading-tight font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
+            {settings.heroTitle || (
+              <>
+                Mua App Pro/Premium <span className="text-noel">giá tốt</span>
+              </>
+            )}
+          </h1>
+          <p className="mt-3 max-w-xl text-sm sm:text-base text-slate-500 dark:text-slate-400">
+            {settings.heroDescription || "ChatGPT, CapCut, Netflix, YouTube Premium, Gemini. Thanh toán VietQR tự động, bảo hành rõ ràng, kích hoạt nhanh 1–5 phút."}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            <a href="#products" className="btn-primary"><Gift className="h-4 w-4" /> Xem bảng giá</a>
+            <button type="button" onClick={() => setCartOpen(true)} className="btn-secondary">Giỏ hàng ({cartQuantity})</button>
           </div>
         </section>
 
         <section id="products" className="mb-12 sm:mb-16">
-          <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="text-xs font-bold uppercase tracking-wide text-red-600/80">Bảng giá</div>
-              <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-50">Chọn sản phẩm & thêm vào giỏ</h2>
+              <h2 className="text-xl sm:text-3xl font-black">Chọn sản phẩm & thêm vào giỏ</h2>
             </div>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="w-full sm:w-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm">
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="w-full sm:w-auto rounded-xl border px-3 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-700">
               <option value="default">Mặc định</option>
               <option value="price-asc">Giá tăng dần</option>
               <option value="price-desc">Giá giảm dần</option>
               <option value="name">Tên A–Z</option>
             </select>
           </div>
-
-          <div className="mb-4 sm:mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {categories.map((item) => (
-              <button key={item} type="button" onClick={() => setCategory(item)} className={cn("shrink-0 rounded-full px-3.5 py-2 text-sm font-bold transition", category === item ? "bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md" : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300")}>
+              <button key={item} type="button" onClick={() => setCategory(item)} className={cn("shrink-0 rounded-full px-3.5 py-2 text-sm font-bold", category === item ? "bg-gradient-to-r from-red-600 to-amber-500 text-white" : "border dark:border-slate-700 bg-white dark:bg-slate-900")}>
                 {item}
               </button>
             ))}
           </div>
-
-          {filteredProducts.length === 0 ? (
-            <div className="card-surface py-16 text-center text-slate-500">Không tìm thấy sản phẩm phù hợp.</div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-5">
-              {filteredProducts.map((product, idx) => {
-                const salePrice = getActiveFlashSalePrice(product, settings, now);
-                return (
-                  <div key={product.id} className="reveal-card" style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}>
-                    <ProductCard product={product} salePrice={salePrice < product.price ? salePrice : undefined} onAddToCart={addToCart} onBuyNow={(p) => addToCart(p)} isFavorite={wishlist.includes(product.id)} onToggleFavorite={() => toggleWishlist(product.id)} />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredProducts.map((product, idx) => {
+              const salePrice = getActiveFlashSalePrice(product, settings, now);
+              return (
+                <div key={product.id} className="reveal-card" style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}>
+                  <ProductCard product={product} salePrice={salePrice < product.price ? salePrice : undefined} onAddToCart={addToCart} onBuyNow={(p) => addToCart(p)} isFavorite={wishlist.includes(product.id)} onToggleFavorite={() => toggleWishlist(product.id)} />
+                </div>
+              );
+            })}
+          </div>
         </section>
 
-        <section className="mb-12 sm:mb-16 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <section className="mb-12 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { icon: Shield, title: "Bảo hành", desc: "Trong thời gian dùng" },
             { icon: Zap, title: "Kích hoạt nhanh", desc: "1–5 phút" },
             { icon: QrCode, title: "VietQR", desc: "Tự động" },
             { icon: Gift, title: "Event Free", desc: "Tối T4 & T7" },
           ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="card-surface flex gap-2.5 sm:gap-3 p-3.5 sm:p-5">
-              <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600">
-                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+            <div key={title} className="card-surface flex gap-2.5 p-3.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/40">
+                <Icon className="h-4 w-4" />
               </div>
-              <div className="min-w-0">
-                <div className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-50 truncate">{title}</div>
-                <div className="text-xs sm:text-sm text-slate-500">{desc}</div>
+              <div>
+                <div className="font-bold text-sm">{title}</div>
+                <div className="text-xs text-slate-500">{desc}</div>
               </div>
             </div>
           ))}
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 dark:border-slate-800 py-6 sm:py-8 text-center text-sm text-slate-500">
-        <div className="container-main">© {new Date().getFullYear()} {settings.siteTitle || "Minh Wuan Store"} · {settings.brandDomain || "minhwuan.com"}</div>
+      <footer className="border-t py-6 text-center text-sm text-slate-500">
+        <div className="container-main">© {new Date().getFullYear()} {settings.siteTitle || "Minh Wuan Store"}</div>
       </footer>
 
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} items={detailedCart} voucherInput={voucherInput} onVoucherInput={setVoucherInput} voucher={voucher} voucherLoading={voucherLoading} onApplyVoucher={applyVoucher} onChangeQuantity={changeQuantity} onRemove={removeFromCart} cartTotal={cartTotal} discountAmount={discountAmount} payableTotal={payableTotal} onCheckout={createOrder} loading={loading} zaloLink={settings.zaloLink || ZALO_SUPPORT} />
 
+      {paymentOrder && (
+        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop-noel">
+          <div className="card-surface relative w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[92vh] overflow-y-auto">
+            <button type="button" onClick={() => setPaymentOrder(null)} className="absolute right-3 top-3 rounded-full bg-slate-100 p-2.5 dark:bg-slate-800"><X className="h-5 w-5" /></button>
+            <h3 className="text-xl font-black pr-10">Thanh toán đơn hàng</h3>
+            <p className="mt-1 text-sm text-slate-500">Mã: {paymentOrder.id}</p>
+            <div className="mt-4 text-2xl font-black text-red-600">{formatMoney(paymentOrder.amount)}</div>
+            {paymentOrder.qrCode && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={paymentOrder.qrCode} alt="VietQR" className="mx-auto mt-4 max-w-[220px] rounded-xl bg-white p-2" />
+            )}
+            <p className="mt-3 text-center text-xs text-slate-500">{paymentOrder.status === "pending" ? "Đang chờ thanh toán..." : paymentOrder.status}</p>
+            {(paymentOrder.status === "paid" || paymentOrder.status === "delivered") && (
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-center gap-2 font-bold text-emerald-600"><CheckCircle2 className="h-5 w-5" /> Đã thanh toán thành công</div>
+                <button type="button" onClick={() => setSpinOpen(true)} className="btn-primary w-full">🎡 Quay thưởng Noel</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {paymentOrder && <SpinWheel orderId={paymentOrder.id} open={spinOpen} onClose={() => setSpinOpen(false)} />}
+
       {showScrollTop && (
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="fixed bottom-[9.5rem] right-3 sm:right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 safe-bottom">
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="fixed bottom-[9.5rem] right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg safe-bottom">
           <ArrowUp className="h-5 w-5" />
         </button>
       )}
 
       {flashSaleActive && !flashOpen && (
-        <button type="button" onClick={() => setFlashOpen(true)} className="fixed bottom-[5.5rem] right-3 sm:right-4 z-40 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-rose-500/30 safe-bottom">
+        <button type="button" onClick={() => setFlashOpen(true)} className="fixed bottom-[5.5rem] right-3 z-40 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-3.5 py-2.5 text-xs font-bold text-white shadow-lg safe-bottom">
           ⚡ Flash Sale
         </button>
       )}
 
-      <a href={ZALO_SUPPORT} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-3 sm:right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#0068FF] text-white shadow-lg shadow-blue-500/40 transition hover:scale-105 hover:bg-[#0054d1] safe-bottom" aria-label="Zalo hỗ trợ" title="Chat Zalo hỗ trợ">
-        <span className="text-sm font-black tracking-tight">Zalo</span>
+      <a href={ZALO_SUPPORT} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-3 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#0068FF] text-white shadow-lg safe-bottom" aria-label="Zalo hỗ trợ">
+        <span className="text-sm font-black">Zalo</span>
       </a>
     </div>
   );
