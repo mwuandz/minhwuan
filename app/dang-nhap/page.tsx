@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, User, Loader2 } from "lucide-react";
+import { Snow } from "@/components/snow";
 
 const TOKEN_KEY = "mw_customer_token";
 const USER_KEY = "mw_customer_user";
@@ -18,7 +19,7 @@ export default function DangNhapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -53,11 +54,12 @@ export default function DangNhapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 noel-hero-bg">
-      <div className="mx-auto max-w-md px-4 py-10">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 noel-hero-bg relative">
+      <Snow />
+      <div className="mx-auto max-w-md px-4 py-10 relative z-10">
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-slate-50 transition"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50 transition"
         >
           <ArrowLeft className="h-4 w-4" />
           Về trang chủ
@@ -65,11 +67,11 @@ export default function DangNhapPage() {
 
         <div className="card-surface p-8">
           <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 text-white">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 text-white shadow-lg">
               <User className="h-7 w-7" />
             </div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-slate-50">
-              {mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
+              {mode === "login" ? "Đăng nhập" : "Tạo tài khoản"} 🎄
             </h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {mode === "login"
@@ -81,7 +83,10 @@ export default function DangNhapPage() {
           <div className="mb-6 flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
             <button
               type="button"
-              onClick={() => { setMode("login"); setError(""); }}
+              onClick={() => {
+                setMode("login");
+                setError("");
+              }}
               className={`flex-1 rounded-lg py-2 text-sm font-bold transition ${
                 mode === "login"
                   ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 shadow-sm"
@@ -92,7 +97,10 @@ export default function DangNhapPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setMode("register"); setError(""); }}
+              onClick={() => {
+                setMode("register");
+                setError("");
+              }}
               className={`flex-1 rounded-lg py-2 text-sm font-bold transition ${
                 mode === "register"
                   ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 shadow-sm"
@@ -170,11 +178,7 @@ export default function DangNhapPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full"
-            >
+            <button type="submit" disabled={loading} className="btn-primary w-full">
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
