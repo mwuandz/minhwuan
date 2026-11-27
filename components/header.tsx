@@ -13,6 +13,8 @@ type HeaderProps = {
   onSearch?: (q: string) => void;
 };
 
+const LOGO_CANDIDATES = ["/logo.jpg", "/logo.jpeg", "/logo.png", "/logo.webp", "/logo.svg"];
+
 export function Header({
   siteTitle = "Minh Wuan Store",
   brandDomain = "minhwuan.com",
@@ -23,7 +25,12 @@ export function Header({
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [logoSrc, setLogoSrc] = useState("/logo.png");
+  const [logoIndex, setLogoIndex] = useState(0);
+  const logoSrc = LOGO_CANDIDATES[Math.min(logoIndex, LOGO_CANDIDATES.length - 1)];
+
+  function handleLogoError() {
+    setLogoIndex((i) => (i + 1 < LOGO_CANDIDATES.length ? i + 1 : i));
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-red-200/60 dark:border-red-900/40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl">
@@ -36,8 +43,8 @@ export function Header({
             <img
               src={logoSrc}
               alt="Minh Wuan"
-              className="h-9 w-9 sm:h-11 sm:w-11 object-contain transition group-hover:scale-105 rounded-xl shrink-0"
-              onError={() => setLogoSrc("/logo.svg")}
+              className="h-9 w-9 sm:h-11 sm:w-11 object-contain transition group-hover:scale-105 rounded-xl shrink-0 bg-white/80"
+              onError={handleLogoError}
             />
             <div className="min-w-0">
               <div className="text-sm font-black leading-tight flex items-center gap-1.5 truncate max-w-[42vw] sm:max-w-none">
