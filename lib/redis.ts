@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
+import { createHash, randomBytes } from "crypto";
 import { defaultProducts, defaultSettings, defaultVouchers, normalizeProduct, normalizeVoucher } from "./products";
-import { CartItem, Order, Product, SiteSettings, Voucher, VoucherValidation } from "./types";
+import { CartItem, Customer, CustomerSession, Order, Product, SiteSettings, Voucher, VoucherValidation } from "./types";
 
 const hasRedis = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
@@ -289,4 +290,155 @@ export async function saveSettings(input: Partial<SiteSettings>): Promise<SiteSe
   if (redis) await redis.set("site:settings", JSON.stringify(next));
   else memorySettings = next;
   return next;
+}
+
+export async function getOrderById(id: string): Promise<Order | null> {
+  return getOrder(id);
+}
+
+export async function getOrdersByContact(contact: string): Promise<Order[]> {
+  const clean = contact.replace(/\s+/g, "").toLowerCase();
+  if (!clean) return [];
+
+  if (redis) {
+    const ids = await redis.zrange<string[]>("orders:index", 0, 200, { rev: true });
+    if (!ids.length) return [];
+    const rows = await Promise.all(ids.map((id) => getOrder(id, false)));
+    return rows.filter(
+      (o): o is Order =>
+        !!o &&
+        (o.customerContact?.replace(/\s+/g, "").toLowerCase().includes(clean) ||
+          o.customerName?.toLowerCase().includes(clean) ||
+          String(o.orderCode).includes(clean) ||
+          o.id.toLowerCase().includes(clean))
+    );
+  }
+
+  return Array.from(memoryOrders.values()).filter(
+    (o) =>
+      o.customerContact?.replace(/\s+/g, "").toLowerCase().includes(clean) ||
+      o.customerName?.toLowerCase().includes(clean) ||
+      String(o.orderCode).includes(clean) ||
+      o.id.toLowerCase().includes(clean)
+  );
+}
+
+export async function getOrderByCode(code: number | string): Promise<Order | null> {
+  const num = Number(code);
+  if (!Number.isFinite(num)) return null;
+
+  if (redis) {
+    const ids = await redis.zrange<string[]>("orders:index", 0, 300, { rev: true });
+    for (const id of ids) {
+      const order = await getOrder(id, false);
+      if (order && order.orderCode === num) return order;
+    }
+    return null;
+  }
+
+  for (const order of memoryOrders.values()) {
+    if (order.orderCode === num) return order;
+  }
+  return null;
+}
+
+// ========== Customers ==========
+const memoryCustomers = new Map<string, Customer>();
+const memorySessions = new Map<string, CustomerSession>();
+const memoryContactIndex = new Map<string, string>(); // contact -> customerId
+
+function normalizeContact(contact: string) {
+  return contact.replace(/\s+/g, "").toLowerCase();
+}
+
+export function hashPassword(password: string): string {
+  return createHash("sha256").update(`mw:${password}:salt`).digest("hex");
+}
+
+export function createSessionToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+export async function getCustomerById(id: string): Promise<Customer | null> {
+  if (redis) {
+    const raw = await redis.hget<string>("customers", id);
+    return parseMaybeJson<Customer>(raw);
+  }
+  return memoryCustomers.get(id) ?? null;
+}
+
+export async function getCustomerByContact(contact: string): Promise<Customer | null> {
+  const key = normalizeContact(contact);
+  if (!key) return null;
+
+  if (redis) {
+    const id = await redis.hget<string>("customers:by_contact", key);
+    if (!id) return null;
+    return getCustomerById(id);
+  }
+  const id = memoryContactIndex.get(key);
+  if (!id) return null;
+  return memoryCustomers.get(id) ?? null;
+}
+
+export async function saveCustomer(customer: Customer): Promise<Customer> {
+  const key = normalizeContact(customer.contact);
+  if (redis) {
+    await redis.hset("customers", { [customer.id]: JSON.stringify(customer) });
+    await redis.hset("customers:by_contact", { [key]: customer.id });
+  } else {
+    memoryCustomers.set(customer.id, customer);
+    memoryContactIndex.set(key, customer.id);
+  }
+  return customer;
+}
+
+export async function createSession(customerId: string, days = 30): Promise<CustomerSession> {
+  const token = createSessionToken();
+  const now = new Date();
+  const expires = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  const session: CustomerSession = {
+    token,
+    customerId,
+    createdAt: now.toISOString(),
+    expiresAt: expires.toISOString(),
+  };
+
+  if (redis) {
+    await redis.set(`session:${token}`, JSON.stringify(session), { ex: days * 24 * 60 * 60 });
+  } else {
+    memorySessions.set(token, session);
+  }
+  return session;
+}
+
+export async function getSession(token: string): Promise<CustomerSession | null> {
+  if (!token) return null;
+  if (redis) {
+    const raw = await redis.get<string>(`session:${token}`);
+    const session = parseMaybeJson<CustomerSession>(raw);
+    if (!session) return null;
+    if (new Date(session.expiresAt).getTime() <= Date.now()) {
+      await redis.del(`session:${token}`);
+      return null;
+    }
+    return session;
+  }
+  const session = memorySessions.get(token) ?? null;
+  if (session && new Date(session.expiresAt).getTime() <= Date.now()) {
+    memorySessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+export async function deleteSession(token: string): Promise<void> {
+  if (redis) await redis.del(`session:${token}`);
+  else memorySessions.delete(token);
+}
+
+export async function getCustomerFromToken(token: string): Promise<Customer | null> {
+  const session = await getSession(token);
+  if (!session) return null;
+  return getCustomerById(session.customerId);
 }
