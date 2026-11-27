@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   LayoutDashboard, ShoppingBag, Package, Ticket, Settings,
   ArrowLeft, RefreshCw, Pencil, Trash2, Clock,
-  CheckCircle2, Truck, XCircle, Loader2,
+  CheckCircle2, Truck, XCircle, Loader2, Gift,
 } from "lucide-react";
 import { defaultSettings } from "@/lib/products";
 import { formatMoney } from "@/lib/money";
@@ -207,9 +207,18 @@ export default function AdminPage() {
             <Link href="/" className="rounded-lg p-2 hover:bg-red-50 dark:hover:bg-red-950/40"><ArrowLeft className="h-5 w-5" /></Link>
             <h1 className="text-lg font-black">Admin 🎄</h1>
           </div>
-          <button onClick={() => loadAll()} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Refresh">
-            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/noel"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-500 px-3 py-2 text-xs sm:text-sm font-bold text-white shadow-md"
+            >
+              <Gift className="h-4 w-4" />
+              Noel · Vòng quay & TB
+            </Link>
+            <button onClick={() => loadAll()} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800" title="Refresh">
+              <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
         </div>
         <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2">
           {([["dashboard", LayoutDashboard, "Dashboard"], ["orders", ShoppingBag, "Đơn hàng"], ["products", Package, "Sản phẩm"], ["vouchers", Ticket, "Voucher"], ["settings", Settings, "Cài đặt"]] as const).map(([id, Icon, label]) => (
@@ -224,13 +233,29 @@ export default function AdminPage() {
         {msg && <div className="mb-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">{msg}</div>}
 
         {tab === "dashboard" && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[["Tổng đơn", stats.total, ""], ["Chờ thanh toán", stats.pending, "text-amber-600"], ["Đã thanh toán", stats.paid, "text-emerald-600"], ["Doanh thu", formatMoney(stats.revenue), "text-red-600"]].map(([label, val, color]) => (
-              <div key={String(label)} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-                <div className="text-sm text-slate-500">{label}</div>
-                <div className={`mt-1 text-2xl font-black ${color}`}>{val}</div>
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[["Tổng đơn", stats.total, ""], ["Chờ thanh toán", stats.pending, "text-amber-600"], ["Đã thanh toán", stats.paid, "text-emerald-600"], ["Doanh thu", formatMoney(stats.revenue), "text-red-600"]].map(([label, val, color]) => (
+                <div key={String(label)} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <div className="text-sm text-slate-500">{label}</div>
+                  <div className={`mt-1 text-2xl font-black ${color}`}>{val}</div>
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/admin/noel"
+              className="block rounded-2xl border border-red-200 dark:border-red-900/50 bg-gradient-to-r from-red-50 to-amber-50 dark:from-red-950/40 dark:to-amber-950/30 p-5 shadow-sm hover:shadow-md transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-600 text-2xl text-white">🎡</div>
+                <div>
+                  <div className="font-black text-lg">Noel tools · Vòng quay & Thông báo</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                    Chỉnh tỉ lệ quà (voucher / sản phẩm / quà), bật-tắt vòng quay, đăng banner khuyến mại · giá · SP mới lên trang chủ
+                  </div>
+                </div>
               </div>
-            ))}
+            </Link>
           </div>
         )}
 
@@ -308,17 +333,22 @@ export default function AdminPage() {
                 <input type="number" className="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Đơn tối thiểu" value={voucherForm.minOrderAmount || 0} onChange={(e) => setVoucherForm({ ...voucherForm, minOrderAmount: Number(e.target.value) })} />
                 <input type="number" className="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Giảm tối đa" value={voucherForm.maxDiscount || 0} onChange={(e) => setVoucherForm({ ...voucherForm, maxDiscount: Number(e.target.value) })} />
               </div>
-              <button type="submit" className="w-full rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white">Lưu voucher</button>
+              <input type="number" className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Giới hạn lượt dùng (0 = không giới hạn)" value={voucherForm.usageLimit || 0} onChange={(e) => setVoucherForm({ ...voucherForm, usageLimit: Number(e.target.value) })} />
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={voucherForm.active !== false} onChange={(e) => setVoucherForm({ ...voucherForm, active: e.target.checked })} /> Đang hoạt động</label>
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white">Lưu voucher</button>
+                <button type="button" onClick={() => setVoucherForm(emptyVoucher)} className="rounded-xl border px-4 py-2.5 text-sm font-bold">Mới</button>
+              </div>
             </form>
             <div className="space-y-2">
               {vouchers.map((v) => (
                 <div key={v.code} className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
                   <div className="min-w-0 flex-1">
                     <div className="font-bold">{v.code}</div>
-                    <div className="text-xs text-slate-500">{v.type === "percent" ? `${v.value}%` : formatMoney(v.value)}</div>
+                    <div className="text-xs text-slate-500">{v.type === "percent" ? `${v.value}%` : formatMoney(v.value)} · used {v.usedCount || 0}</div>
                   </div>
-                  <button onClick={() => setVoucherForm({ ...v, applicableProductIds: v.applicableProductIds || [] })} className="rounded-lg p-2 hover:bg-slate-100"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => deleteVoucher(v.code)} className="rounded-lg p-2 text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => setVoucherForm(v)} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => deleteVoucher(v.code)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>
                 </div>
               ))}
             </div>
@@ -327,45 +357,42 @@ export default function AdminPage() {
 
         {tab === "settings" && (
           <form onSubmit={saveSettings} className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-            <h2 className="font-black text-lg">Cài đặt website</h2>
-            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Tiêu đề" value={settings.siteTitle} onChange={(e) => setSettings({ ...settings, siteTitle: e.target.value })} />
+            <h2 className="font-black">Cài đặt website</h2>
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Tiêu đề site" value={settings.siteTitle} onChange={(e) => setSettings({ ...settings, siteTitle: e.target.value })} />
             <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Subtitle" value={settings.siteSubtitle} onChange={(e) => setSettings({ ...settings, siteSubtitle: e.target.value })} />
             <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Domain" value={settings.brandDomain} onChange={(e) => setSettings({ ...settings, brandDomain: e.target.value })} />
             <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Hero title" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} />
             <textarea rows={3} className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Hero description" value={settings.heroDescription} onChange={(e) => setSettings({ ...settings, heroDescription: e.target.value })} />
-            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Event text" value={settings.eventText} onChange={(e) => setSettings({ ...settings, eventText: e.target.value })} />
-            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Zalo link" value={settings.zaloLink} onChange={(e) => setSettings({ ...settings, zaloLink: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Event text (marquee)" value={settings.eventText || ""} onChange={(e) => setSettings({ ...settings, eventText: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Zalo link" value={settings.zaloLink || ""} onChange={(e) => setSettings({ ...settings, zaloLink: e.target.value })} />
+            <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Community link" value={settings.communityLink || ""} onChange={(e) => setSettings({ ...settings, communityLink: e.target.value })} />
 
-            <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-black text-amber-800 dark:text-amber-300">⚡ Flash Sale</h3>
-                <label className="flex items-center gap-2 text-sm font-semibold">
-                  <input type="checkbox" checked={settings.flashSaleEnabled !== false} onChange={(e) => setSettings({ ...settings, flashSaleEnabled: e.target.checked })} />
-                  Bật
-                </label>
-              </div>
-              <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Tiêu đề flash sale" value={settings.flashSaleTitle || ""} onChange={(e) => setSettings({ ...settings, flashSaleTitle: e.target.value })} />
+            <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+              <h3 className="font-bold">Flash Sale</h3>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={settings.flashSaleEnabled !== false} onChange={(e) => setSettings({ ...settings, flashSaleEnabled: e.target.checked })} /> Bật flash sale</label>
+              <input className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" placeholder="Tiêu đề flash" value={settings.flashSaleTitle || ""} onChange={(e) => setSettings({ ...settings, flashSaleTitle: e.target.value })} />
               <input type="datetime-local" className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" value={toDateTimeLocalValue(settings.flashSaleEndsAt)} onChange={(e) => setSettings({ ...settings, flashSaleEndsAt: dateTimeLocalToIso(e.target.value) })} />
-              <p className="text-xs text-slate-500">Chọn sản phẩm & nhập giá sale</p>
-              <div className="max-h-64 space-y-2 overflow-y-auto">
-                {products.filter((p) => p.active !== false && p.price > 0).map((product) => {
-                  const selected = (settings.flashSaleProductIds || []).includes(product.id);
-                  const salePrice = settings.flashSalePrices?.[product.id] || "";
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {products.map((p) => {
+                  const selected = (settings.flashSaleProductIds || []).includes(p.id);
                   return (
-                    <div key={product.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2">
-                      <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                        <input type="checkbox" checked={selected} onChange={() => toggleFlashSaleProduct(product.id)} />
-                        <span className="truncate font-medium">{product.name}</span>
-                        <span className="text-xs text-slate-400">{formatMoney(product.price)}</span>
-                      </label>
-                      <input type="number" inputMode="numeric" placeholder="Giá sale" className="w-28 rounded-lg border px-2 py-1.5 text-sm dark:bg-slate-800 dark:border-slate-700" value={salePrice ? String(salePrice) : ""} onChange={(e) => setFlashSalePrice(product.id, e.target.value)} />
+                    <div key={p.id} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={selected} onChange={() => toggleFlashSaleProduct(p.id)} />
+                      <span className="flex-1 truncate">{p.name}</span>
+                      <input
+                        type="number"
+                        className="w-28 rounded-lg border px-2 py-1 dark:bg-slate-800 dark:border-slate-700"
+                        placeholder="Giá sale"
+                        value={settings.flashSalePrices?.[p.id] || ""}
+                        onChange={(e) => setFlashSalePrice(p.id, e.target.value)}
+                      />
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <button type="submit" className="w-full rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white">Lưu cài đặt</button>
+            <button type="submit" className="w-full rounded-xl bg-red-600 py-3 font-bold text-white">Lưu cài đặt</button>
           </form>
         )}
       </div>
