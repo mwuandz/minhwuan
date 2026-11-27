@@ -11,6 +11,8 @@ type Prize = {
   weight?: number;
   voucherCode?: string;
   note?: string;
+  image?: string;
+  productId?: string;
 };
 
 type Props = {
@@ -26,7 +28,13 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
   const [title, setTitle] = useState("Vòng quay Noel 🎄");
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [result, setResult] = useState<{ label: string; type: string; voucherCode?: string; note?: string } | null>(null);
+  const [result, setResult] = useState<{
+    label: string;
+    type: string;
+    voucherCode?: string;
+    note?: string;
+    image?: string;
+  } | null>(null);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
@@ -41,9 +49,15 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
         if (data.config?.prizes) setPrizes(data.config.prizes);
         if (data.config?.title) setTitle(data.config.title);
         if (data.alreadySpun && data.result) {
+          const matched = (data.config?.prizes || []).find(
+            (p: Prize) => p.id === data.result.prizeId
+          );
           setResult({
             label: data.result.prizeLabel,
             type: data.result.prizeType,
+            image: matched?.image,
+            voucherCode: matched?.voucherCode,
+            note: matched?.note,
           });
         }
       })
@@ -77,7 +91,14 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Không quay được");
-        if (data.result) setResult({ label: data.result.prizeLabel, type: data.result.prizeType });
+        if (data.result) {
+          const matched = prizes.find((p) => p.id === data.result.prizeId);
+          setResult({
+            label: data.result.prizeLabel,
+            type: data.result.prizeType,
+            image: matched?.image,
+          });
+        }
         setSpinning(false);
         return;
       }
@@ -91,6 +112,7 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
           type: prize.type,
           voucherCode: prize.voucherCode,
           note: prize.note,
+          image: prize.image,
         });
         setSpinning(false);
       }, 4200);
@@ -106,7 +128,12 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
     <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop-noel">
       <div className="relative w-full max-w-md overflow-hidden rounded-t-3xl sm:rounded-3xl border border-red-200/50 bg-white dark:bg-slate-900 shadow-2xl">
         <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-amber-400 to-emerald-600" />
-        <button type="button" onClick={onClose} className="absolute right-3 top-4 z-10 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5" aria-label="Đóng">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-4 z-10 rounded-full bg-slate-100 dark:bg-slate-800 p-2.5"
+          aria-label="Đóng"
+        >
           <X className="h-5 w-5" />
         </button>
         <div className="p-5 sm:p-6 text-center">
@@ -116,16 +143,77 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
           <div className="relative mx-auto mt-5 h-64 w-64">
             <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1 text-2xl">▼</div>
             <div
-              className="h-full w-full rounded-full border-4 border-amber-400 shadow-inner transition-transform duration-[4s] ease-out"
+              className="h-full w-full rounded-full border-4 border-amber-400 shadow-inner transition-transform duration-[4s] ease-out relative overflow-hidden"
               style={{
                 background: gradient,
                 transform: `rotate(${rotation}deg)`,
               }}
-            />
+            >
+              {prizes.map((p, i) => {
+                const angle = (i + 0.5) * segment - 90;
+                const rad = (angle * Math.PI) / 180;
+                const r = 38;
+                const x = 50 + r * Math.cos(rad);
+                const y = 50 + r * Math.sin(rad);
+                return (
+                  <div
+                    key={p.id}
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${x}%`,
+                      top: `${y}%`,
+                      transform: `translate(-50%, -50%) rotate(${-rotation}deg)`,
+                      width: 36,
+                      height: 36,
+                    }}
+                  >
+                    {p.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.image}
+                        alt={p.label}
+                        className="h-9 w-9 rounded-full object-cover border-2 border-white shadow"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/80 bg-black/25 text-[10px] font-black text-white shadow"
+                        title={p.label}
+                      >
+                        {p.label.slice(0, 2)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="h-12 w-12 rounded-full bg-white dark:bg-slate-900 border-2 border-amber-400 flex items-center justify-center text-lg font-black shadow">🎄</div>
+              <div className="h-12 w-12 rounded-full bg-white dark:bg-slate-900 border-2 border-amber-400 flex items-center justify-center text-lg font-black shadow">
+                🎄
+              </div>
             </div>
           </div>
+
+          {prizes.length > 0 && !result && (
+            <div className="mt-4 flex flex-wrap justify-center gap-2 max-h-20 overflow-y-auto">
+              {prizes.map((p) => (
+                <div
+                  key={p.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border bg-slate-50 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold"
+                >
+                  {p.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image} alt="" className="h-4 w-4 rounded-full object-cover" />
+                  ) : (
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: p.color || "#64748b" }}
+                    />
+                  )}
+                  <span className="max-w-[80px] truncate">{p.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {!loaded ? (
             <div className="mt-4 flex justify-center">
@@ -134,12 +222,31 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
           ) : result ? (
             <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 p-4">
               <div className="text-xs font-bold uppercase text-emerald-700">Bạn nhận được</div>
-              <div className="mt-1 text-lg font-black text-slate-900 dark:text-slate-50">{result.label}</div>
-              {result.voucherCode && <div className="mt-2 font-mono text-sm font-bold text-red-600">Mã: {result.voucherCode}</div>}
-              {result.note && <p className="mt-1 text-xs text-slate-500">{result.note}</p>}
+              <div className="mt-2 flex items-center justify-center gap-3">
+                {result.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={result.image}
+                    alt={result.label}
+                    className="h-14 w-14 rounded-xl object-cover border border-emerald-200 shadow"
+                  />
+                )}
+                <div className="text-left">
+                  <div className="text-lg font-black text-slate-900 dark:text-slate-50">{result.label}</div>
+                  {result.voucherCode && (
+                    <div className="mt-1 font-mono text-sm font-bold text-red-600">Mã: {result.voucherCode}</div>
+                  )}
+                  {result.note && <p className="mt-1 text-xs text-slate-500">{result.note}</p>}
+                </div>
+              </div>
             </div>
           ) : (
-            <button type="button" disabled={spinning || !prizes.length} onClick={handleSpin} className="btn-primary mt-5 w-full disabled:opacity-60">
+            <button
+              type="button"
+              disabled={spinning || !prizes.length}
+              onClick={handleSpin}
+              className="btn-primary mt-5 w-full disabled:opacity-60"
+            >
               {spinning ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" /> Đang quay...
