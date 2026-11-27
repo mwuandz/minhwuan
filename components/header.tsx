@@ -30,21 +30,21 @@ export function Header({
       <div className="h-1 w-full bg-gradient-to-r from-red-600 via-amber-400 to-emerald-600" />
 
       <div className="container-main">
-        <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3 shrink-0 group">
+        <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 group min-w-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={logoSrc}
               alt="Minh Wuan"
-              className="h-10 w-10 object-contain sm:h-11 sm:w-11 transition group-hover:scale-105 rounded-xl"
+              className="h-9 w-9 sm:h-11 sm:w-11 object-contain transition group-hover:scale-105 rounded-xl shrink-0"
               onError={() => setLogoSrc("/logo.svg")}
             />
-            <div className="hidden sm:block">
-              <div className="text-sm font-black leading-tight flex items-center gap-1.5">
-                {siteTitle}
-                <span className="text-base">🎄</span>
+            <div className="min-w-0">
+              <div className="text-sm font-black leading-tight flex items-center gap-1.5 truncate max-w-[42vw] sm:max-w-none">
+                <span className="truncate">{siteTitle}</span>
+                <span className="text-base shrink-0">🎄</span>
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">{brandDomain}</div>
+              <div className="hidden sm:block text-xs text-slate-500 dark:text-slate-400">{brandDomain}</div>
             </div>
           </Link>
 
@@ -63,7 +63,7 @@ export function Header({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
             <Link
               href="/tra-cuu"
               className="hidden sm:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300 transition"
@@ -92,6 +92,7 @@ export function Header({
             <button
               onClick={onOpenCart}
               className="relative rounded-xl p-2.5 text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300 transition"
+              aria-label="Giỏ hàng"
             >
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -104,6 +105,7 @@ export function Header({
             <button
               className="md:hidden rounded-xl p-2.5 text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/40"
               onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Menu"
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
