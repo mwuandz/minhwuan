@@ -6,8 +6,6 @@
   --noel-red: #c41e3a;
   --noel-gold: #d4a017;
   --noel-green: #1a7a4c;
-  --paper: #fff8f0;
-  --ink: #1a0a0f;
 }
 
 html, body {
@@ -18,6 +16,7 @@ body {
   color: #0f172a;
   background: #f8fafc;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 .dark body {
@@ -30,14 +29,14 @@ body {
   max-width: 72rem;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
 }
 
 @media (min-width: 640px) {
   .container-main {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
   }
 }
 
@@ -66,7 +65,6 @@ body {
 .dark .card-surface {
   border-color: rgba(51, 65, 85, 0.6);
   background: rgba(15, 23, 42, 0.85);
-  box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.4);
 }
 
 .btn-primary {
@@ -82,10 +80,13 @@ body {
   color: #fff;
   box-shadow: 0 8px 24px -6px rgba(196, 30, 58, 0.45);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px;
 }
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px -6px rgba(196, 30, 58, 0.55);
+}
+.btn-primary:active {
+  transform: scale(0.97);
 }
 
 .btn-secondary {
@@ -95,37 +96,17 @@ body {
   gap: 0.5rem;
   border-radius: 0.875rem;
   border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   padding: 0.7rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 700;
   color: #0f172a;
-  transition: background 0.15s ease;
+  min-height: 44px;
 }
 .dark .btn-secondary {
   border-color: rgba(51, 65, 85, 0.8);
-  background: rgba(30, 41, 59, 0.8);
+  background: rgba(30, 41, 59, 0.9);
   color: #f1f5f9;
-}
-.btn-secondary:hover {
-  background: rgba(248, 250, 252, 1);
-}
-.dark .btn-secondary:hover {
-  background: rgba(51, 65, 85, 0.9);
-}
-
-.btn-gold {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 0.875rem;
-  background: linear-gradient(135deg, #d4a017, #f59e0b);
-  padding: 0.7rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #1a0a0f;
-  box-shadow: 0 8px 24px -6px rgba(212, 160, 23, 0.4);
 }
 
 .text-noel {
@@ -135,10 +116,12 @@ body {
   color: transparent;
 }
 
+/* Marquee */
 .marquee-track {
   display: flex;
   width: max-content;
-  animation: marquee 28s linear infinite;
+  animation: marquee 32s linear infinite;
+  will-change: transform;
 }
 @keyframes marquee {
   from { transform: translateX(0); }
@@ -154,100 +137,153 @@ body {
   backdrop-filter: blur(12px);
 }
 
-.noel-lights {
-  position: relative;
-  z-index: 30;
-  display: flex;
-  justify-content: space-around;
-  height: 10px;
-  margin-bottom: -10px;
-  pointer-events: none;
-  background: radial-gradient(ellipse at top, rgba(15, 65, 42, .22), transparent 70%);
-}
-.noel-lights span {
-  width: 9px;
-  height: 13px;
-  margin-top: -2px;
-  border-radius: 50% 50% 45% 45%;
-  background: #e11d48;
-  box-shadow: 0 0 12px currentColor;
-  animation: christmas-lights 1.8s ease-in-out infinite alternate;
-}
-.noel-lights span:nth-child(3n) { background: #22c55e; animation-delay: .35s; }
-.noel-lights span:nth-child(3n + 1) { background: #facc15; animation-delay: .7s; }
-@keyframes christmas-lights {
-  from { opacity: .45; filter: brightness(.8); transform: scale(.88); }
-  to { opacity: 1; filter: brightness(1.35); transform: scale(1.08); }
-}
-.hero-enter { animation: hero-enter .8s cubic-bezier(.2,.75,.25,1) both; }
-@keyframes hero-enter {
-  from { opacity: 0; transform: translateY(22px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.hero-float { animation: hero-float 6s ease-in-out infinite; }
-@keyframes hero-float {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  50% { transform: translateY(-8px) rotate(.35deg); }
-}
-.reveal-card { animation: card-appear .55s both; }
-@keyframes card-appear {
-  from { opacity: 0; transform: translateY(14px) scale(.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.product-card-noel {
-  position: relative;
-}
-.product-card-noel::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto auto -120%;
-  width: 55%;
+/* ===== Snowfall ===== */
+.snow-container {
+  position: fixed;
+  inset: 0;
+  width: 100%;
   height: 100%;
   pointer-events: none;
-  background: linear-gradient(110deg, transparent, rgba(255,255,255,.28), transparent);
-  transform: skewX(-18deg);
-  transition: left .75s ease;
-  z-index: 2;
+  z-index: 45;
+  overflow: hidden;
 }
-.product-card-noel:hover::before { left: 150%; }
-.btn-primary, .btn-gold, .btn-secondary { position: relative; overflow: hidden; }
-.btn-primary:active, .btn-gold:active, .btn-secondary:active { transform: scale(.97); }
-::selection { background: rgba(196, 30, 58, .2); }
-html { scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
+
+.snowflake {
+  position: absolute;
+  top: -3rem;
+  color: #94a3b8;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  animation-name: snowfall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  user-select: none;
+  will-change: transform, opacity;
+}
+
+.dark .snowflake {
+  color: #cbd5e1;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+@keyframes snowfall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.95;
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(12vw, 110vh, 0) rotate(360deg);
+    opacity: 0;
   }
 }
 
-/* Mobile polish */
+/* Product badges */
+.badge-hot,
+.badge-sale,
+.badge-new,
+.badge-combo,
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.badge-hot {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #fff;
+}
+.badge-sale {
+  background: linear-gradient(135deg, #e11d48, #be123c);
+  color: #fff;
+}
+.badge-new {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+.badge-combo {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+}
+
+.hero-enter {
+  animation: hero-enter 0.7s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+@keyframes hero-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-float {
+  animation: hero-float 6s ease-in-out infinite;
+}
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.reveal-card {
+  animation: card-appear 0.5s both;
+}
+@keyframes card-appear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.product-card-noel {
+  position: relative;
+}
+
 .safe-bottom {
   margin-bottom: env(safe-area-inset-bottom, 0px);
 }
-.container-main {
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
+
+/* Hide horizontal scrollbar on category chips */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 640px) {
-  .btn-primary, .btn-secondary, .btn-gold {
-    min-height: 44px;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    font-size: 0.875rem;
-  }
   .card-surface {
     border-radius: 1.25rem;
   }
   .marquee-track {
-    font-size: 0.75rem;
-  }
-  body {
-    overflow-x: hidden;
+    font-size: 0.7rem;
   }
   .hero-float {
     animation: none;
   }
+  /* Fewer, softer snowflakes feel on mobile is handled in component count */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snowflake,
+  .marquee-track,
+  .hero-enter,
+  .hero-float,
+  .reveal-card {
+    animation: none !important;
+  }
+  .snow-container {
+    display: none;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+::selection {
+  background: rgba(196, 30, 58, 0.2);
 }
