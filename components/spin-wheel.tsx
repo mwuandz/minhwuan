@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 
 type Prize = {
@@ -30,7 +30,7 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  useMemo(() => {
+  useEffect(() => {
     if (!open || !orderId) return;
     setLoaded(false);
     setResult(null);
@@ -77,17 +77,12 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Không quay được");
-        if (data.result) {
-          setResult({ label: data.result.prizeLabel, type: data.result.prizeType });
-        }
+        if (data.result) setResult({ label: data.result.prizeLabel, type: data.result.prizeType });
         setSpinning(false);
         return;
       }
       const prize = data.prize as Prize;
-      const idx = Math.max(
-        0,
-        prizes.findIndex((p) => p.id === prize.id)
-      );
+      const idx = Math.max(0, prizes.findIndex((p) => p.id === prize.id));
       const target = 360 * 5 + (360 - idx * segment - segment / 2);
       setRotation((r) => r + target);
       setTimeout(() => {
@@ -133,23 +128,18 @@ export function SpinWheel({ orderId, open, onClose }: Props) {
           </div>
 
           {!loaded ? (
-            <div className="mt-4 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-red-500" /></div>
+            <div className="mt-4 flex justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-red-500" />
+            </div>
           ) : result ? (
             <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 p-4">
               <div className="text-xs font-bold uppercase text-emerald-700">Bạn nhận được</div>
               <div className="mt-1 text-lg font-black text-slate-900 dark:text-slate-50">{result.label}</div>
-              {result.voucherCode && (
-                <div className="mt-2 font-mono text-sm font-bold text-red-600">Mã: {result.voucherCode}</div>
-              )}
+              {result.voucherCode && <div className="mt-2 font-mono text-sm font-bold text-red-600">Mã: {result.voucherCode}</div>}
               {result.note && <p className="mt-1 text-xs text-slate-500">{result.note}</p>}
             </div>
           ) : (
-            <button
-              type="button"
-              disabled={spinning || !prizes.length}
-              onClick={handleSpin}
-              className="btn-primary mt-5 w-full disabled:opacity-60"
-            >
+            <button type="button" disabled={spinning || !prizes.length} onClick={handleSpin} className="btn-primary mt-5 w-full disabled:opacity-60">
               {spinning ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" /> Đang quay...
