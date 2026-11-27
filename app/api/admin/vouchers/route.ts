@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listVouchers, saveVoucher } from "../../../../lib/redis";
+import { listVouchers, saveVoucher, deleteVoucher } from "../../../../lib/redis";
 
 function checkPassword(req: Request) {
   const url = new URL(req.url);
@@ -21,4 +21,13 @@ export async function POST(req: Request) {
   }
   const voucher = await saveVoucher(body);
   return NextResponse.json({ voucher });
+}
+
+export async function DELETE(req: Request) {
+  if (!checkPassword(req)) return NextResponse.json({ error: "Sai mật khẩu admin" }, { status: 401 });
+  const body = await req.json().catch(() => ({}));
+  const code = body.code || body.id || new URL(req.url).searchParams.get("code");
+  if (!code) return NextResponse.json({ error: "Thiếu mã voucher" }, { status: 400 });
+  const ok = await deleteVoucher(String(code));
+  return NextResponse.json({ ok });
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listProducts, saveProduct } from "../../../../lib/redis";
+import { listProducts, saveProduct, deleteProduct } from "../../../../lib/redis";
 
 function checkPassword(req: Request) {
   const url = new URL(req.url);
@@ -21,4 +21,13 @@ export async function POST(req: Request) {
   }
   const product = await saveProduct(body);
   return NextResponse.json({ product });
+}
+
+export async function DELETE(req: Request) {
+  if (!checkPassword(req)) return NextResponse.json({ error: "Sai mật khẩu admin" }, { status: 401 });
+  const body = await req.json().catch(() => ({}));
+  const id = body.id || new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Thiếu id" }, { status: 400 });
+  const ok = await deleteProduct(String(id));
+  return NextResponse.json({ ok });
 }
