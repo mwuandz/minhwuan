@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, User, Loader2 } from "lucide-react";
 import { Snow } from "@/components/snow";
 
@@ -10,7 +9,6 @@ const TOKEN_KEY = "mw_customer_token";
 const USER_KEY = "mw_customer_user";
 
 export default function DangNhapPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
@@ -40,15 +38,23 @@ export default function DangNhapPage() {
 
       if (!res.ok) {
         setError(data.error || "Có lỗi xảy ra");
+        setLoading(false);
+        return;
+      }
+
+      if (!data.token || !data.customer) {
+        setError("Phản hồi đăng nhập không hợp lệ");
+        setLoading(false);
         return;
       }
 
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.customer));
-      router.push("/tai-khoan");
+      // Hard navigation – tránh bị kẹt ở trang đăng nhập
+      window.location.href = "/tai-khoan";
+      return;
     } catch {
       setError("Không kết nối được máy chủ");
-    } finally {
       setLoading(false);
     }
   }
@@ -114,9 +120,7 @@ export default function DangNhapPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Họ tên
-                </label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">Họ tên</label>
                 <input
                   type="text"
                   required
@@ -129,9 +133,7 @@ export default function DangNhapPage() {
             )}
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Số điện thoại / Zalo
-              </label>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">Số điện thoại / Zalo</label>
               <input
                 type="text"
                 required
@@ -144,9 +146,7 @@ export default function DangNhapPage() {
 
             {mode === "register" && (
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Email (tuỳ chọn)
-                </label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email (tuỳ chọn)</label>
                 <input
                   type="email"
                   value={email}
@@ -158,9 +158,7 @@ export default function DangNhapPage() {
             )}
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Mật khẩu
-              </label>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">Mật khẩu</label>
               <input
                 type="password"
                 required
