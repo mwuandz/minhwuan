@@ -9,123 +9,268 @@
 @layer base {
   :root {
     --background: 0 20% 98%;
-    --foreground: 0 30% 8%;
+    --foreground: 0 30% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 0 30% 8%;
+    --card-foreground: 0 30% 12%;
     --primary: 0 72% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 38 92% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 10% 96%;
+    --secondary: 145 40% 94%;
+    --secondary-foreground: 145 50% 18%;
+    --muted: 0 15% 95%;
     --muted-foreground: 0 10% 40%;
-    --accent: 0 72% 42%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --border: 0 15% 90%;
+    --accent: 45 90% 48%;
+    --accent-foreground: 0 30% 12%;
+    --destructive: 0 84% 50%;
+    --border: 0 20% 88%;
     --ring: 0 72% 42%;
     --radius: 1rem;
+
+    --noel-red: #c41e3a;
+    --noel-red-dark: #9b1b2e;
+    --noel-green: #1a7a4c;
+    --noel-green-light: #2d9b6a;
+    --noel-gold: #d4a017;
+    --noel-gold-light: #f0c14b;
+    --noel-cream: #fff8f0;
+    --noel-snow: #f8fafc;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 98%;
-    --primary: 0 72% 48%;
+    --background: 220 30% 6%;
+    --foreground: 0 0% 96%;
+    --card: 220 25% 10%;
+    --card-foreground: 0 0% 96%;
+    --primary: 0 70% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 38 92% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 0 72% 48%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 50%;
-    --border: 217 33% 18%;
-    --ring: 0 72% 48%;
+    --secondary: 145 25% 14%;
+    --secondary-foreground: 145 40% 80%;
+    --muted: 220 20% 14%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 45 85% 52%;
+    --accent-foreground: 220 30% 6%;
+    --destructive: 0 62% 45%;
+    --border: 220 20% 18%;
+    --ring: 0 70% 48%;
   }
 
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* SNOWFALL */
+.snow-container {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+}
+.snowflake {
+  position: absolute;
+  top: -10px;
+  color: #fff;
+  font-size: 1rem;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  animation: snowfall linear infinite;
+  opacity: 0.85;
+  user-select: none;
+}
+@keyframes snowfall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 0.9; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0.2; }
 }
 
 @layer components {
   .container-main {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
-  }
-
-  .card-surface {
-    @apply rounded-3xl border border-slate-200/80 dark:border-slate-700/80 bg-white/90 dark:bg-slate-900/90 shadow-xl shadow-slate-200/40 dark:shadow-black/30 backdrop-blur-sm;
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white shadow-lg transition hover:opacity-95 active:scale-[0.98] disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50;
     background: linear-gradient(135deg, #c41e3a 0%, #9b1b2e 50%, #d4a017 100%);
-    box-shadow: 0 10px 28px -6px rgba(196, 30, 58, 0.45);
+    box-shadow: 0 10px 30px -8px rgba(196, 30, 58, 0.45);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 14px 36px -6px rgba(196, 30, 58, 0.55);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-bold text-slate-800 dark:text-slate-100 transition hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition-all hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800;
   }
 
-  .noel-hero-bg {
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(196, 30, 58, 0.18), transparent),
-      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(212, 160, 23, 0.12), transparent),
-      radial-gradient(ellipse 50% 30% at 10% 20%, rgba(34, 197, 94, 0.08), transparent);
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-slate-900 shadow-lg transition-all hover:-translate-y-0.5;
+    background: linear-gradient(135deg, #f0c14b, #d4a017);
+    box-shadow: 0 8px 24px -6px rgba(212, 160, 23, 0.4);
   }
 
-  .noel-badge {
-    @apply inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-red-600 to-amber-500 px-3 py-1 text-xs font-bold text-white shadow-md;
+  .card-surface {
+    @apply rounded-3xl border border-slate-200/80 bg-white/90 shadow-card backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold;
+  }
+  .badge-hot {
+    @apply badge text-white;
+    background: linear-gradient(135deg, #c41e3a, #e11d48);
+  }
+  .badge-sale {
+    @apply badge text-slate-900;
+    background: linear-gradient(135deg, #f0c14b, #d4a017);
+  }
+  .badge-new {
+    @apply badge text-white;
+    background: linear-gradient(135deg, #1a7a4c, #2d9b6a);
+  }
+  .badge-combo {
+    @apply badge text-white;
+    background: linear-gradient(135deg, #7c3aed, #c41e3a);
+  }
+  .badge-noel {
+    @apply badge text-white;
+    background: linear-gradient(135deg, #c41e3a, #1a7a4c);
   }
 }
 
-/* Snow animation helpers (used with components/snow.tsx) */
-@keyframes snowfall {
-  0% {
-    transform: translateY(-10vh) translateX(0) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(110vh) translateX(40px) rotate(360deg);
-    opacity: 0;
-  }
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
-.snowflake {
-  position: fixed;
-  top: -10px;
-  color: #fff;
-  font-size: 1rem;
-  pointer-events: none;
-  z-index: 50;
-  animation: snowfall linear infinite;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(196, 30, 58, 0.35);
+  background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(196, 30, 58, 0.55);
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Noel decorations */
+.noel-glow {
+  box-shadow: 0 0 0 1px rgba(196, 30, 58, 0.15),
+              0 8px 32px -8px rgba(196, 30, 58, 0.25);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.twinkle { animation: twinkle 2.2s ease-in-out infinite; }
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.float-soft { animation: float-soft 5s ease-in-out infinite; }
+
+.text-noel {
+  background: linear-gradient(135deg, #c41e3a 0%, #d4a017 50%, #1a7a4c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.noel-hero-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(196, 30, 58, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(212, 160, 23, 0.1), transparent),
+    radial-gradient(ellipse 50% 30% at 50% 100%, rgba(26, 122, 76, 0.08), transparent);
+}
+.dark .noel-hero-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(196, 30, 58, 0.22), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(212, 160, 23, 0.15), transparent),
+    radial-gradient(ellipse 50% 30% at 50% 100%, rgba(26, 122, 76, 0.12), transparent);
+}
+
+.cart-badge {
+  background: linear-gradient(135deg, #c41e3a, #e11d48);
+}
+
+.modal-backdrop-noel {
+  background: rgba(15, 10, 20, 0.65);
+  backdrop-filter: blur(12px);
+}
+
+/* Christmas 2026 motion layer */
+.noel-lights {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  justify-content: space-around;
+  height: 10px;
+  margin-bottom: -10px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at top, rgba(15, 65, 42, .22), transparent 70%);
+}
+.noel-lights span {
+  width: 9px;
+  height: 13px;
+  margin-top: -2px;
+  border-radius: 50% 50% 45% 45%;
+  background: #e11d48;
+  box-shadow: 0 0 12px currentColor;
+  animation: christmas-lights 1.8s ease-in-out infinite alternate;
+}
+.noel-lights span:nth-child(3n) { background: #22c55e; animation-delay: .35s; }
+.noel-lights span:nth-child(3n + 1) { background: #facc15; animation-delay: .7s; }
+@keyframes christmas-lights {
+  from { opacity: .45; filter: brightness(.8); transform: scale(.88); }
+  to { opacity: 1; filter: brightness(1.35); transform: scale(1.08); }
+}
+.hero-enter { animation: hero-enter .8s cubic-bezier(.2,.75,.25,1) both; }
+@keyframes hero-enter {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-float { animation: hero-float 6s ease-in-out infinite; }
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-8px) rotate(.35deg); }
+}
+.reveal-card { animation: card-appear .55s both; }
+@keyframes card-appear {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.product-card-noel::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto -120%;
+  width: 55%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent, rgba(255,255,255,.28), transparent);
+  transform: skewX(-18deg);
+  transition: left .75s ease;
+  z-index: 2;
+}
+.product-card-noel:hover::before { left: 150%; }
+.btn-primary, .btn-gold, .btn-secondary { position: relative; overflow: hidden; }
+.btn-primary:active, .btn-gold:active, .btn-secondary:active { transform: scale(.97); }
+::selection { background: rgba(196, 30, 58, .2); }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
 }
