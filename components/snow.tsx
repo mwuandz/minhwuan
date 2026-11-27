@@ -2,21 +2,32 @@
 
 import { useEffect, useState } from "react";
 
-const FLAKES = ["❄", "❅", "❆", "•"];
+const FLAKES = ["❄", "❅", "❆", "✦", "•"];
 
-export function Snow({ count = 40 }: { count?: number }) {
-  const [flakes, setFlakes] = useState<
-    { id: number; left: number; delay: number; duration: number; size: number; char: string }[]
-  >([]);
+type Flake = {
+  id: number;
+  left: number;
+  delay: number;
+  duration: number;
+  size: number;
+  char: string;
+  drift: number;
+};
+
+export function Snow({ count }: { count?: number }) {
+  const [flakes, setFlakes] = useState<Flake[]>([]);
 
   useEffect(() => {
-    const generated = Array.from({ length: count }, (_, i) => ({
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+    const n = count ?? (isMobile ? 28 : 48);
+    const generated: Flake[] = Array.from({ length: n }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
-      delay: Math.random() * 8,
-      duration: 10 + Math.random() * 15,
-      size: 0.6 + Math.random() * 1.1,
+      delay: Math.random() * -12,
+      duration: 8 + Math.random() * 14,
+      size: isMobile ? 0.7 + Math.random() * 0.9 : 0.65 + Math.random() * 1.2,
       char: FLAKES[Math.floor(Math.random() * FLAKES.length)],
+      drift: -20 + Math.random() * 40,
     }));
     setFlakes(generated);
   }, [count]);
@@ -34,6 +45,8 @@ export function Snow({ count = 40 }: { count?: number }) {
             animationDelay: `${f.delay}s`,
             animationDuration: `${f.duration}s`,
             fontSize: `${f.size}rem`,
+            // slight horizontal drift via CSS variable
+            ["--drift" as string]: `${f.drift}px`,
           }}
         >
           {f.char}
