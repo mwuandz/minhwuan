@@ -9,6 +9,7 @@ import { ProductCard } from "@/components/product-card";
 import { CartDrawer } from "@/components/cart-drawer";
 import { SpinWheel } from "@/components/spin-wheel";
 import { FlashSaleModal } from "@/components/flash-sale-modal";
+import { CommunityPopup } from "@/components/community-popup";
 import { fmtRem, salePrice } from "@/lib/home-helpers";
 import { Gift, X, CheckCircle2, Sparkles, ArrowUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,8 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<"default" | "price-asc" | "price-desc" | "name">("default");
   const [loading, setLoading] = useState(false);
   const [flashOpen, setFlashOpen] = useState(false);
+  const [communityOpen, setCommunityOpen] = useState(false);
+  const [flashDismissed, setFlashDismissed] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState<LCI[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -121,10 +124,23 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!settingsLoaded || !flashActive) return;
-    try { if (sessionStorage.getItem("mw_flash_popup_seen")) return; } catch {}
+    try {
+      if (sessionStorage.getItem("mw_flash_popup_seen")) {
+        setFlashDismissed(true);
+        return;
+      }
+    } catch {}
     const t = setTimeout(() => setFlashOpen(true), 650);
     return () => clearTimeout(t);
   }, [settingsLoaded, flashActive]);
+
+  useEffect(() => {
+    if (!settingsLoaded || settings.communityPopupEnabled === false) return;
+    if (flashActive && !flashDismissed) return;
+    try { if (sessionStorage.getItem("mw_community_popup_seen")) return; } catch {}
+    const t = setTimeout(() => setCommunityOpen(true), 900);
+    return () => clearTimeout(t);
+  }, [settingsLoaded, settings.communityPopupEnabled, flashActive, flashDismissed]);
 
   function addToCart(p: Product) {
     setCart((c) => {
@@ -142,6 +158,11 @@ export default function HomePage() {
   function closeFlash() {
     try { sessionStorage.setItem("mw_flash_popup_seen", "1"); } catch {}
     setFlashOpen(false);
+    setFlashDismissed(true);
+  }
+  function closeCommunity() {
+    try { sessionStorage.setItem("mw_community_popup_seen", "1"); } catch {}
+    setCommunityOpen(false);
   }
 
   async function applyVoucher() {
@@ -220,6 +241,8 @@ export default function HomePage() {
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} items={detailedCart} voucherInput={voucherInput} onVoucherInput={setVoucherInput} voucher={voucher} voucherLoading={voucherLoading} onApplyVoucher={applyVoucher} onChangeQuantity={changeQty} onRemove={removeItem} cartTotal={cartTotal} discountAmount={discountAmount} payableTotal={payableTotal} onCheckout={createOrder} loading={loading} zaloLink={settings.zaloLink || ZALO} />
 
       <FlashSaleModal open={flashOpen && flashActive} products={flashProducts} settings={settings} now={now} remaining={flashRem} onClose={closeFlash} onAdd={(p) => { addToCart(p); closeFlash(); }} />
+
+      <CommunityPopup open={communityOpen} settings={settings} fallbackLink={ZALO} onClose={closeCommunity} />
 
       {paymentOrder && (() => {
         const exp = paymentOrder.expiresAt ? new Date(paymentOrder.expiresAt).getTime() : 0;
