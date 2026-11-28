@@ -265,7 +265,6 @@ body {
   .hero-float {
     animation: none;
   }
-  /* Fewer, softer snowflakes feel on mobile is handled in component count */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -286,4 +285,252 @@ html {
 }
 ::selection {
   background: rgba(196, 30, 58, 0.2);
+}
+
+/* ===== Noel Loader / Splash ===== */
+.noel-loader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(196, 30, 58, 0.35), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 15% 90%, rgba(26, 122, 76, 0.28), transparent 50%),
+    radial-gradient(ellipse 45% 35% at 90% 80%, rgba(212, 160, 23, 0.22), transparent 50%),
+    linear-gradient(165deg, #1a0a0f 0%, #0f172a 45%, #0a1628 100%);
+  color: #fff;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.noel-loader--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  min-height: 100dvh;
+}
+.noel-loader--leave {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
+.noel-loader__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.noel-loader__glow--red {
+  width: 220px;
+  height: 220px;
+  top: 12%;
+  left: 10%;
+  background: #c41e3a;
+  animation: noel-pulse 3.2s ease-in-out infinite;
+}
+.noel-loader__glow--gold {
+  width: 180px;
+  height: 180px;
+  top: 55%;
+  right: 8%;
+  background: #d4a017;
+  animation: noel-pulse 3.8s ease-in-out infinite 0.6s;
+}
+.noel-loader__glow--green {
+  width: 160px;
+  height: 160px;
+  bottom: 8%;
+  left: 40%;
+  background: #1a7a4c;
+  animation: noel-pulse 4.2s ease-in-out infinite 1s;
+}
+@keyframes noel-pulse {
+  0%, 100% { opacity: 0.28; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.12); }
+}
+
+.noel-loader__snow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.noel-loader__flake {
+  position: absolute;
+  top: -12%;
+  color: rgba(255, 255, 255, 0.75);
+  animation-name: noel-flake-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+}
+@keyframes noel-flake-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: translateY(110vh) rotate(320deg); opacity: 0.15; }
+}
+
+.noel-loader__card {
+  position: relative;
+  z-index: 2;
+  width: min(92vw, 360px);
+  text-align: center;
+  padding: 1.75rem 1.5rem 1.5rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 0 0 1px rgba(212, 160, 23, 0.15),
+    0 24px 64px -16px rgba(0, 0, 0, 0.55);
+}
+
+.noel-loader__tree {
+  position: relative;
+  width: 96px;
+  height: 110px;
+  margin: 0 auto 1.1rem;
+}
+.noel-loader__tree-layer {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-color: transparent transparent #1a7a4c transparent;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+.noel-loader__tree-layer--1 {
+  top: 8px;
+  border-width: 0 28px 36px 28px;
+  border-bottom-color: #1f9a5c;
+  animation: noel-tree-bob 2.4s ease-in-out infinite;
+}
+.noel-loader__tree-layer--2 {
+  top: 28px;
+  border-width: 0 36px 40px 36px;
+  border-bottom-color: #1a7a4c;
+  animation: noel-tree-bob 2.4s ease-in-out infinite 0.12s;
+}
+.noel-loader__tree-layer--3 {
+  top: 50px;
+  border-width: 0 44px 44px 44px;
+  border-bottom-color: #15633e;
+  animation: noel-tree-bob 2.4s ease-in-out infinite 0.24s;
+}
+.noel-loader__tree-trunk {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: #6b3f1f;
+}
+.noel-loader__star {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fbbf24;
+  font-size: 1.35rem;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.9);
+  animation: noel-star-twinkle 1.6s ease-in-out infinite;
+}
+@keyframes noel-tree-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-3px); }
+}
+@keyframes noel-star-twinkle {
+  0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
+  50% { opacity: 0.7; transform: translateX(-50%) scale(1.15); }
+}
+
+.noel-loader__ornament {
+  position: absolute;
+  font-size: 0.55rem;
+  line-height: 1;
+  animation: noel-ornament-pulse 1.8s ease-in-out infinite;
+}
+.noel-loader__ornament--1 { top: 34px; left: 28px; color: #ef4444; }
+.noel-loader__ornament--2 { top: 52px; right: 24px; color: #fbbf24; animation-delay: 0.3s; }
+.noel-loader__ornament--3 { top: 70px; left: 36px; color: #60a5fa; animation-delay: 0.6s; }
+@keyframes noel-ornament-pulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+.noel-loader__badge {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a0a0f;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24);
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
+}
+.noel-loader__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 20%, #fbbf24 50%, #fca5a5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.noel-loader__msg {
+  margin: 0.55rem 0 0;
+  min-height: 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.78);
+  transition: opacity 0.25s ease;
+}
+
+.noel-loader__bar {
+  margin-top: 1.25rem;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.noel-loader__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c41e3a, #f59e0b, #22c55e);
+  background-size: 200% 100%;
+  animation: noel-bar-shine 1.8s linear infinite;
+  transition: width 0.2s ease;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+}
+@keyframes noel-bar-shine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.noel-loader__pct {
+  margin-top: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(248, 250, 252, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .noel-loader__flake,
+  .noel-loader__glow,
+  .noel-loader__tree-layer,
+  .noel-loader__star,
+  .noel-loader__ornament,
+  .noel-loader__bar-fill {
+    animation: none !important;
+  }
 }
