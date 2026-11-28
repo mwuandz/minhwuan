@@ -423,7 +423,7 @@ export default function HomePage() {
               const salePrice = getActiveFlashSalePrice(product, settings, now);
               return (
                 <div key={product.id} className="reveal-card" style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}>
-                  <ProductCard product={product} salePrice={salePrice < product.price ? salePrice : undefined} onAddToCart={addToCart} onBuyNow={(p) => addToCart(p)} isFavorite={wishlist.includes(product.id)} onToggleFavorite={toggleWishlist} />
+                  <ProductCard product={product} salePrice={salePrice < product.price ? salePrice : undefined} onAddToCart={addToCart} onBuyNow={(p) => addToCart(p)} isFavorite={wishlist.includes(product.id)} onToggleFavorite={() => toggleWishlist(product.id)} />
                 </div>
               );
             })}
