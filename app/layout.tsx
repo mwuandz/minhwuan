@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { JsonLd } from "@/components/json-ld";
+import { NoelSplash } from "@/components/noel-loader";
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.minhwuan.com";
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen font-sans">
         <JsonLd />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <NoelSplash />
           {children}
         </ThemeProvider>
       </body>
